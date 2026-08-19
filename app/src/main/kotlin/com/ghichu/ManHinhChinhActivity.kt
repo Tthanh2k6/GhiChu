@@ -42,6 +42,7 @@ class ManHinhChinhActivity : Activity() {
     private var thuMuc: String? = null
     private var tim = ""
     private var thungRac = false
+    private var riengTu = false
 
     /**
      * Cac ghi chu dang duoc chon (che do chon nhieu).
@@ -119,6 +120,16 @@ class ManHinhChinhActivity : Activity() {
         val quyen = android.Manifest.permission.POST_NOTIFICATIONS
         if (checkSelfPermission(quyen) == android.content.pm.PackageManager.PERMISSION_GRANTED) return
         requestPermissions(arrayOf(quyen), 1)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // Roi app la khoa lai. Do la ca diem cua tinh nang: mo khoa mot lan roi
+        // de mo mai thi ai cam may cung doc duoc, y het nhu khong ma hoa.
+        if (isFinishing || !isChangingConfigurations) {
+            KhoaRiengTu.khoaLai()
+            if (riengTu) doiCho(null, false)
+        }
     }
 
     override fun onResume() {
@@ -497,6 +508,8 @@ class ManHinhChinhActivity : Activity() {
             ten += "$t  ($n)"
             lam += { doiCho(t, false) }
         }
+        ten += "Riêng tư"
+        lam += { moRiengTu() }
         ten += "Thùng rác"
         lam += { doiCho(null, true) }
         ten += "Thư mục mới…"
@@ -524,11 +537,94 @@ class ManHinhChinhActivity : Activity() {
             .show()
     }
 
-    private fun doiCho(tm: String?, rac: Boolean) {
+    private fun doiCho(tm: String?, rac: Boolean, rieng: Boolean = false) {
         thuMuc = tm
         thungRac = rac
+        riengTu = rieng
         thoatChon()
         nap()
+    }
+
+    // ------------------------------------------------------------ rieng tu
+
+    /**
+     * Vao muc Rieng tu: hoi mat khau, sinh khoa o luong nen roi mo.
+     *
+     * Sinh khoa co y CHAM (PBKDF2 210.000 vong — xem [MaHoa]) nen bat buoc phai o
+     * luong nen: lam o luong chinh la giao dien dung hinh gan mot giay moi lan
+     * mo khoa, va Android co the bao "ứng dụng không phản hồi".
+     */
+    private fun moRiengTu() {
+        if (KhoaRiengTu.dangMo) {
+            doiCho(null, false, rieng = true)
+            return
+        }
+        if (!KhoaRiengTu.daDatMatKhau) {
+            hienDatMatKhau()
+            return
+        }
+        hoiMatKhau("Nhập mật khẩu", "Mở") { mk, xong ->
+            Thread {
+                val duoc = KhoaRiengTu.mo(mk)
+                runOnUiThread {
+                    xong()
+                    if (duoc) doiCho(null, false, rieng = true)
+                    else Toast.makeText(this, "Sai mật khẩu", Toast.LENGTH_SHORT).show()
+                }
+            }.start()
+        }
+    }
+
+    private fun hienDatMatKhau() {
+        AlertDialog.Builder(this, mau.themeHopThoai)
+            .setTitle("Đặt mật khẩu riêng tư")
+            .setMessage(KhoaRiengTu.canhBao)
+            .setNegativeButton("Huỷ", null)
+            .setPositiveButton("Tiếp") { _, _ ->
+                hoiMatKhau("Mật khẩu mới", "Đặt") { mk, xong ->
+                    if (mk.length < 4) {
+                        xong()
+                        Toast.makeText(this, "Mật khẩu quá ngắn", Toast.LENGTH_SHORT).show()
+                        return@hoiMatKhau
+                    }
+                    Thread {
+                        val duoc = KhoaRiengTu.dat(mk)
+                        runOnUiThread {
+                            xong()
+                            if (duoc) doiCho(null, false, rieng = true)
+                        }
+                    }.start()
+                }
+            }
+            .show()
+    }
+
+    /**
+     * Hop nhap mat khau.
+     *
+     * [lam] nhan mat khau va mot ham `xong` de dong hop cho — sinh khoa mat gan
+     * mot giay, khong co gi bao thi nguoi dung tuong app treo va bam lai may lan.
+     */
+    private fun hoiMatKhau(tieuDe: String, nutOk: String, lam: (String, () -> Unit) -> Unit) {
+        val o = EditText(this).apply {
+            hint = "Mật khẩu"
+            isSingleLine = true
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+        }
+        AlertDialog.Builder(this, mau.themeHopThoai)
+            .setTitle(tieuDe)
+            .setView(o)
+            .setNegativeButton("Huỷ", null)
+            .setPositiveButton(nutOk) { _, _ ->
+                val cho = android.app.ProgressDialog(this, mau.themeHopThoai).apply {
+                    setMessage("Đang mở khoá…")
+                    setCancelable(false)
+                    show()
+                }
+                lam(o.text.toString()) { if (cho.isShowing) cho.dismiss() }
+            }
+            .show()
     }
 
     private fun hienCaiDat() {
@@ -571,10 +667,16 @@ class ManHinhChinhActivity : Activity() {
     // ------------------------------------------------------------ nap
 
     private fun nap() {
-        duLieu = kho.danhSach(thuMuc = thuMuc, tim = tim, thungRac = thungRac)
+        duLieu = kho.danhSach(
+            thuMuc = if (riengTu) null else thuMuc,
+            tim = tim,
+            riengTu = riengTu,
+            thungRac = thungRac,
+        )
         (luoi.adapter as BaseAdapter).notifyDataSetChanged()
 
         oTieuDe.text = when {
+            riengTu -> "Riêng tư"
             thungRac -> "Thùng rác"
             thuMuc == null -> "Ghi chú"
             thuMuc!!.isEmpty() -> "Chưa xếp thư mục"
@@ -585,6 +687,7 @@ class ManHinhChinhActivity : Activity() {
         oTrong.text = when {
             tim.isNotBlank() -> "Không tìm thấy ghi chú nào"
             thungRac -> "Thùng rác trống"
+            riengTu -> "Chưa có ghi chú riêng tư.\nMở một ghi chú rồi chọn “Chuyển vào riêng tư”."
             else -> "Chưa có ghi chú.\nBấm dấu + để viết ghi chú đầu tiên."
         }
     }
@@ -607,7 +710,7 @@ class ManHinhChinhActivity : Activity() {
         when {
             dangChon.isNotEmpty() -> thoatChon()
             tim.isNotBlank() -> oTim.setText("")
-            thungRac || thuMuc != null -> doiCho(null, false)
+            riengTu || thungRac || thuMuc != null -> doiCho(null, false)
             else -> super.onBackPressed()
         }
     }

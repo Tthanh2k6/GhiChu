@@ -65,6 +65,18 @@
             android:exported="false" />
 
         <!--
+          Dua tep xuat (anh, PDF, van ban) ra cho app khac doc khi chia se.
+          `exported="true"` + `grantUriPermissions` la cach duy nhat de app nhan
+          chia se mo duoc tep; quyen chi cap cho DUNG uri gui kem intent, va lop
+          nay chi phuc vu thu muc `cache/chiase`.
+        -->
+        <provider
+            android:name="com.ghichu.TepChiaSe"
+            android:authorities="com.ghichu.tep"
+            android:exported="true"
+            android:grantUriPermissions="true" />
+
+        <!--
           Nhan bao thuc nhac nho, va nhan tin khoi dong xong de hen lai.
           `exported="true"` vi ANH `BOOT_COMPLETED` la broadcast cua he thong.
         -->

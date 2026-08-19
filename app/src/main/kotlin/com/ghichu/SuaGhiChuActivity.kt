@@ -396,8 +396,11 @@ class SuaGhiChuActivity : Activity() {
         muc += if (nhacLuc == null) "Đặt nhắc nhở…" else "Bỏ nhắc nhở"
         lam += { if (nhacLuc == null) hienDatNhac() else datNhac(null) }
 
-        muc += "Chia sẻ"
-        lam += { chiaSe() }
+        muc += if (goc?.riengTu == true) "Bỏ riêng tư" else "Chuyển vào riêng tư"
+        lam += { doiRiengTu() }
+
+        muc += "Chia sẻ / xuất…"
+        lam += { hienXuat() }
 
         if (id != 0L) {
             muc += "Chuyển vào thùng rác"
@@ -500,16 +503,117 @@ class SuaGhiChuActivity : Activity() {
         ).show()
     }
 
-    private fun chiaSe() {
-        val chu = (oTieuDe.text.toString() + "\n" + oThan.text.toString()).trim()
-        if (chu.isBlank()) {
+    /**
+     * Chuyen ghi chu vao/ra muc rieng tu.
+     *
+     * Ghi XUONG NGAY chu khong doi `onPause`, va di qua [luu] de noi dung duoc
+     * ma hoa (hoac giai ma) dung mot lan. Chua dat mat khau thi phai dat truoc —
+     * khong co khoa thi khong ma hoa duoc gi.
+     */
+    private fun doiRiengTu() {
+        val muon = goc?.riengTu != true
+        if (muon && !KhoaRiengTu.dangMo) {
+            Toast.makeText(
+                this,
+                if (KhoaRiengTu.daDatMatKhau) "Mở khoá mục Riêng tư ở màn hình chính trước"
+                else "Vào Thư mục > Riêng tư để đặt mật khẩu trước",
+                Toast.LENGTH_LONG,
+            ).show()
+            return
+        }
+
+        // Phai luu phan dang go TRUOC khi doi co: [luu] doc co tu `goc`, doi co
+        // ma chua luu thi phan vua go bi ghi bang co cu.
+        luu()
+        val g = if (id != 0L) kho.theoId(id) else null
+        if (g == null) {
             Toast.makeText(this, "Ghi chú trống", Toast.LENGTH_SHORT).show()
             return
         }
+        goc = g
+        id = kho.luu(
+            GhiChu(
+                id = g.id, uid = g.uid, tieuDe = g.tieuDe, noiDung = g.noiDung,
+                thuMuc = g.thuMuc, ghim = g.ghim, mau = g.mau,
+                riengTu = muon, nhacLuc = g.nhacLuc, ngayTao = g.ngayTao,
+            ),
+        )
+        goc = kho.theoId(id)
+        Toast.makeText(
+            this,
+            if (muon) "Đã chuyển vào Riêng tư" else "Đã bỏ khỏi Riêng tư",
+            Toast.LENGTH_SHORT,
+        ).show()
+    }
+
+    private fun hienXuat() {
+        if (oTieuDe.text.isBlank() && oThan.text.isBlank()) {
+            Toast.makeText(this, "Ghi chú trống", Toast.LENGTH_SHORT).show()
+            return
+        }
+        AlertDialog.Builder(this, mau.themeHopThoai)
+            .setTitle("Chia sẻ / xuất")
+            .setItems(arrayOf("Văn bản", "Ảnh PNG", "PDF")) { _, chon ->
+                when (chon) {
+                    0 -> chiaSeChu()
+                    1 -> xuatTep("image/png") { XuatGhiChu.anh(this, tieuDe(), than(), mau) }
+                    2 -> xuatTep("application/pdf") { XuatGhiChu.pdf(this, tieuDe(), than(), mau) }
+                }
+            }
+            .show()
+    }
+
+    private fun tieuDe(): String = oTieuDe.text.toString().trim()
+
+    /**
+     * Noi dung de xuat, GIU nguyen dinh dang.
+     *
+     * Tra thang `oThan.text` chu khong `.toString()`: doi sang String la mat het
+     * span — chu dam, mau chu, anh deu bien thanh chu tron.
+     */
+    private fun than(): CharSequence = oThan.text
+
+    private fun chiaSeChu() {
+        val chu = (tieuDe() + "\n" + than().toString()).trim()
         startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
             putExtra(Intent.EXTRA_TEXT, chu)
         }, "Chia sẻ ghi chú"))
+    }
+
+    /**
+     * Dung tep roi mo bang chon chia se.
+     *
+     * Dung tep o LUONG NEN: ve mot ghi chu dai ra PDF nhieu trang mat vai tram
+     * mili giay, du de giao dien khung mot cai ngay sau khi nguoi dung bam.
+     */
+    private fun xuatTep(kieu: String, dung: () -> java.io.File) {
+        TepChiaSe.don(this)
+        Thread {
+            val f = try {
+                dung()
+            } catch (e: Exception) {
+                runOnUiThread {
+                    Toast.makeText(this, "Không xuất được: " + e.message, Toast.LENGTH_LONG).show()
+                }
+                return@Thread
+            }
+            val uri = TepChiaSe.uriCua(this, f)
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                startActivity(
+                    Intent.createChooser(
+                        Intent(Intent.ACTION_SEND).apply {
+                            type = kieu
+                            putExtra(Intent.EXTRA_STREAM, uri)
+                            putExtra(Intent.EXTRA_SUBJECT, tieuDe())
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        },
+                        "Chia sẻ ghi chú",
+                    ),
+                )
+            }
+        }.start()
     }
 
     // ------------------------------------------------------------ luu

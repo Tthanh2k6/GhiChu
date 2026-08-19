@@ -14,9 +14,11 @@ import org.json.JSONObject
  *    — dung y ban mod cu va ban Flutter truoc do. Kho tren Supabase dung chung
  *    cho ca ba; doi ten mot truong la ghi chu cu thanh rac.
  *
- * 2. **Ghi chu rieng tu khong len may chu.** Do la thu nguoi dung co y giau; day
- *    len la pha vo y do. Chung nam trong may, va se duoc ma hoa that o chang
- *    sau. Vi vay [chuaDay] loc `rieng_tu = 0`.
+ * 2. **Ghi chu rieng tu khong len may chu va nam duoi dang DA MA HOA.** Tieu de
+ *    va noi dung di qua [MaHoa]; cot `chu_tron` de RONG (no von la ban chu tho
+ *    de tim kiem — luu that vao do la ma hoa xong roi de nguyen ban ro ben canh).
+ *    Doi lai: ghi chu rieng tu khong tim kiem duoc. Do la cai gia dung.
+ *    [chuaDay] loc `rieng_tu = 0` — day len may chu la pha vo y giau cua nguoi dung.
  *
  * 3. **Vao thung rac = gui bia mo.** Ban mod cung lam vay, nen hai ban xoa an
  *    khop nhau. Thung rac la chuyen RIENG cua may nay: hang van con, khoi phuc
@@ -87,10 +89,13 @@ class KhoGhiChu(private val kho: KhoDuLieu) {
      */
     fun luu(g: GhiChu): Long {
         val gio = System.currentTimeMillis()
+        val khoa = if (g.riengTu) KhoaRiengTu.khoaDangMo() else null
         val v = ContentValues().apply {
-            put("tieu_de", g.tieuDe)
-            put("noi_dung", g.noiDung)
-            put("chu_tron", NoiDungGhiChu.chuTron(g.noiDung))
+            put("tieu_de", if (khoa == null) g.tieuDe else MaHoa.maHoa(g.tieuDe, khoa))
+            put("noi_dung", if (khoa == null) g.noiDung else MaHoa.maHoa(g.noiDung, khoa))
+            // Ghi chu rieng tu KHONG co ban chu tho: cot nay von de tim kiem, ma
+            // ma hoa xong roi de nguyen ban ro ben canh thi ma hoa de lam gi.
+            put("chu_tron", if (khoa == null) NoiDungGhiChu.chuTron(g.noiDung) else "")
             put("thu_muc", g.thuMuc)
             put("ghim", if (g.ghim) 1 else 0)
             put("mau", g.mau)
@@ -415,16 +420,54 @@ class KhoGhiChu(private val kho: KhoDuLieu) {
     private fun chuoi(o: JSONObject, ten: String): String =
         if (o.isNull(ten)) "" else o.optString(ten)
 
-    private fun doc(c: Cursor) = GhiChu(
+    /**
+     * Doc mot hang thanh [GhiChu], giai ma neu la ghi chu rieng tu.
+     *
+     * Dang khoa ma van doc trung mot ghi chu rieng tu thi tra ve **the rong**
+     * chu khong tra chuoi ma hoa: chuoi do lot ra giao dien la mot dong base64
+     * dai ngoang, con te hon la khong hien gi.
+     */
+    private fun doc(c: Cursor): GhiChu {
+        val riengTu = c.getInt(c.getColumnIndexOrThrow("rieng_tu")) != 0
+        var tieuDe = c.getString(c.getColumnIndexOrThrow("tieu_de")).orEmpty()
+        var noiDung = c.getString(c.getColumnIndexOrThrow("noi_dung")).orEmpty()
+        var chuTron = c.getString(c.getColumnIndexOrThrow("chu_tron")).orEmpty()
+
+        if (riengTu && (MaHoa.daMaHoa(tieuDe) || MaHoa.daMaHoa(noiDung))) {
+            val khoa = if (KhoaRiengTu.dangMo) KhoaRiengTu.khoaDangMo() else null
+            if (khoa == null) {
+                tieuDe = ""
+                noiDung = ""
+            } else {
+                try {
+                    tieuDe = MaHoa.giaiMa(tieuDe, khoa)
+                    noiDung = MaHoa.giaiMa(noiDung, khoa)
+                } catch (_: LoiMaHoa) {
+                    tieuDe = ""
+                    noiDung = ""
+                }
+            }
+            chuTron = NoiDungGhiChu.chuTron(noiDung)
+        }
+        return docTiep(c, tieuDe, noiDung, chuTron, riengTu)
+    }
+
+    private fun docTiep(
+        c: Cursor,
+        tieuDe: String,
+        noiDung: String,
+        chuTron: String,
+        riengTu: Boolean,
+    ) = GhiChu(
         id = c.getLong(c.getColumnIndexOrThrow("_id")),
         uid = c.getString(c.getColumnIndexOrThrow("uid")).orEmpty(),
-        tieuDe = c.getString(c.getColumnIndexOrThrow("tieu_de")).orEmpty(),
-        noiDung = c.getString(c.getColumnIndexOrThrow("noi_dung")).orEmpty(),
-        chuTron = c.getString(c.getColumnIndexOrThrow("chu_tron")).orEmpty(),
+        tieuDe = tieuDe,
+        noiDung = noiDung,
+        chuTron = chuTron,
         thuMuc = c.getString(c.getColumnIndexOrThrow("thu_muc")).orEmpty(),
         ghim = c.getInt(c.getColumnIndexOrThrow("ghim")) != 0,
         mau = c.getInt(c.getColumnIndexOrThrow("mau")),
-        riengTu = c.getInt(c.getColumnIndexOrThrow("rieng_tu")) != 0,
+        riengTu = riengTu,
         nhacLuc = c.getColumnIndexOrThrow("nhac_luc").let { if (c.isNull(it)) null else c.getLong(it) },
         ngayTao = c.getLong(c.getColumnIndexOrThrow("ngay_tao")),
         ngaySua = c.getLong(c.getColumnIndexOrThrow("ngay_sua")),

@@ -119,12 +119,18 @@ object KhoAnh {
      */
     fun donTepThua(context: Context, kho: KhoDuLieu) {
         val dung = HashSet<String>()
-        val THE_ANH = Regex("<img[^>]*src=\"([^\"]+)\"")
+        val theAnh = Regex("<img[^>]*src=\"([^\"]+)\"")
+
         kho.readableDatabase.query(
             KhoDuLieu.BANG_GHI_CHU, arrayOf("noi_dung"), null, null, null, null, null,
         ).use { c ->
             while (c.moveToNext()) {
-                for (m in THE_ANH.findAll(c.getString(0).orEmpty())) dung += m.groupValues[1]
+                val noiDung = c.getString(0).orEmpty()
+                // Ghi chu rieng tu dang khoa thi KHONG doc duoc no nhac toi anh
+                // nao — don luc do la xoa mat anh trong ghi chu rieng tu. Gap mot
+                // hang nhu vay la bo ca luot don, doi lan sau nguoi dung mo khoa.
+                if (MaHoa.daMaHoa(noiDung)) return
+                for (m in theAnh.findAll(noiDung)) dung += m.groupValues[1]
             }
         }
         thuMuc(context).listFiles()?.forEach { if (it.name !in dung) it.delete() }

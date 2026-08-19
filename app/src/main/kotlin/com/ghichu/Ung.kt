@@ -19,6 +19,7 @@ class Ung : Application() {
         super.onCreate()
         DongBo.khoiTao(this)
         Gemini.khoiTao(this)
+        KhoaRiengTu.khoiTao(this)
         // Hen lai bao thuc nhac nho ngay khi app song lai. Can cho lan dau sau
         // khi cai: chua sua gi thi khong co duong nao khac goi toi [NhacNho].
         //
