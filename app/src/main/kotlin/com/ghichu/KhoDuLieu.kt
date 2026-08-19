@@ -56,11 +56,84 @@ class KhoDuLieu(context: Context) : SQLiteOpenHelper(
         taoBangGhiChu(db)
         taoBangThuMuc(db)
         taoBangQr(db)
+        taoBangHoiThoai(db)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, cu: Int, moi: Int) {
-        // Chua co phien ban nao khac phien ban 1 — khi nao them cot thi VIET
-        // THEM vao day, dung bao gio xoa bang: du lieu la cua nguoi dung.
+        // VIET THEM vao day khi doi schema; dung bao gio xoa bang — du lieu la
+        // cua nguoi dung.
+        if (cu < 2) taoBangHoiThoai(db)
+    }
+
+    /**
+     * Cac cuoc tro chuyen voi tro ly AI.
+     *
+     * `luot` la ca doan chat duoi dang JSON trong MOT o. Co y khong tach moi luot
+     * mot hang: khong bao gio can truy van vao giua mot doan chat — luc nao cung
+     * doc/ghi tron ca doan — nen tach ra chi them mot phep noi bang ma khong duoc
+     * gi.
+     *
+     * **Khong dong bo len may chu.** Doan chat hay co thu nguoi dung khong nghi
+     * la minh dang luu tru; giu trong may la lua chon an toan hon.
+     */
+    private fun taoBangHoiThoai(db: SQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS $BANG_HOI_THOAI (
+                _id      INTEGER PRIMARY KEY AUTOINCREMENT,
+                tieu_de  TEXT    NOT NULL DEFAULT '',
+                luot     TEXT    NOT NULL DEFAULT '',
+                ngay_sua INTEGER NOT NULL DEFAULT 0
+            )
+            """.trimIndent(),
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_${BANG_HOI_THOAI}_sua ON $BANG_HOI_THOAI (ngay_sua)")
+    }
+
+    // ---- Tro chuyen voi AI ----
+
+    /** Mot cuoc tro chuyen trong danh sach lich su. */
+    class TomTatChat(val id: Long, val tieuDe: String, val ngaySua: Long)
+
+    /**
+     * Ghi mot cuoc tro chuyen. `id = 0` la tao moi; tra ve id sau khi luu.
+     *
+     * Doan rong thi KHONG tao hang: mo tro ly len roi thoat ngay la chuyen
+     * thuong, khong nen de lai mot muc trong trong lich su.
+     */
+    fun luuHoiThoai(id: Long, tieuDe: String, luot: String): Long {
+        if (id == 0L && luot.isBlank()) return 0L
+        val v = ContentValues().apply {
+            put("tieu_de", tieuDe.take(80))
+            put("luot", luot)
+            put("ngay_sua", System.currentTimeMillis())
+        }
+        if (id != 0L) {
+            writableDatabase.update(BANG_HOI_THOAI, v, "_id = ?", arrayOf(id.toString()))
+            return id
+        }
+        return writableDatabase.insert(BANG_HOI_THOAI, null, v)
+    }
+
+    fun danhSachHoiThoai(gioiHan: Int = 50): List<TomTatChat> {
+        val ra = ArrayList<TomTatChat>()
+        readableDatabase.query(
+            BANG_HOI_THOAI, arrayOf("_id", "tieu_de", "ngay_sua"),
+            null, null, null, null, "ngay_sua DESC", gioiHan.toString(),
+        ).use { c ->
+            while (c.moveToNext()) {
+                ra += TomTatChat(c.getLong(0), c.getString(1).orEmpty(), c.getLong(2))
+            }
+        }
+        return ra
+    }
+
+    fun docHoiThoai(id: Long): String = readableDatabase.query(
+        BANG_HOI_THOAI, arrayOf("luot"), "_id = ?", arrayOf(id.toString()), null, null, null,
+    ).use { if (it.moveToFirst()) it.getString(0).orEmpty() else "" }
+
+    fun xoaHoiThoai(id: Long) {
+        writableDatabase.delete(BANG_HOI_THOAI, "_id = ?", arrayOf(id.toString()))
     }
 
     private fun taoBangSuKien(db: SQLiteDatabase) {
@@ -419,12 +492,14 @@ class KhoDuLieu(context: Context) : SQLiteOpenHelper(
     companion object {
         const val TEN_DB = "ghichu.db"
 
-        const val PHIEN_BAN = 1
+        /** v2 = them bang cac cuoc tro chuyen voi tro ly AI. */
+        const val PHIEN_BAN = 2
 
         const val BANG = "su_kien"
         const val BANG_GHI_CHU = "ghi_chu"
         const val BANG_THU_MUC = "thu_muc"
         const val BANG_QR = "qr_lich_su"
+        const val BANG_HOI_THOAI = "hoi_thoai"
 
         /** Ten "loai" tren bang `sync_items` — dung chung voi ban Flutter cu. */
         const val LOAI_SU_KIEN = "event"

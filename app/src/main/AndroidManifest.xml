@@ -18,6 +18,18 @@
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
 
+    <!--
+      `enableOnBackInvokedCallback` CO Y de false.
+
+      Bat len thi tu Android 13 he thong BO QUA `onBackPressed()` va luon lam
+      hanh vi mac dinh (dong man hinh). Ma o day nut back phai lam viec khac:
+      man chinh thi lui mot buoc (thoat che do chon > xoa o tim > ve tat ca ghi
+      chu) truoc khi thoat app, man tro ly thi dong ngan keo truoc. Bat cai co do
+      la moi phan xu ly do im lang khong chay, khong bao loi gi.
+
+      Doi lai la khong co hoat anh "back doan truoc" cua Android 14. Doi duoc
+      khi nao dang ky OnBackInvokedCallback cho tung man.
+    -->
     <application
         android:name="com.ghichu.Ung"
         android:label="@string/ten_app"
@@ -26,7 +38,7 @@
         android:theme="@style/ThemeGhiChu"
         android:supportsRtl="true"
         android:allowBackup="true"
-        android:enableOnBackInvokedCallback="true">
+        android:enableOnBackInvokedCallback="false">
 
         <activity
             android:name="com.ghichu.ManHinhChinhActivity"

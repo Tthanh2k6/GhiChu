@@ -2,7 +2,6 @@ package com.ghichu
 
 import android.app.Activity
 import android.app.AlertDialog
-import android.app.KeyguardManager
 import android.content.Context
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
@@ -16,6 +15,7 @@ import android.view.ViewGroup
 import android.view.WindowInsets
 import android.widget.Button
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -38,8 +38,10 @@ import java.util.concurrent.Executors
  * 3. **Khong nhung API key vao APK.** Nguoi dung tu dan mot lan o day. Khoa
  *    Gemini lo la nguoi khac xai het han muc — khac han khoa Supabase.
  *
- * Giao dien dung bang code chu khong dung R.layout: ma tai nguyen sinh o module
- * nay khong khop bang tai nguyen cua app dich.
+ * Lich su tro chuyen o NGAN KEO TRAI, nhieu cuoc song song — dung y ban chot.
+ * Cac cuoc nam trong CSDL cua app ([KhoDuLieu.BANG_HOI_THOAI]) va **khong dong
+ * bo len may chu**: doan chat hay co thu nguoi dung khong nghi la minh dang luu
+ * tru.
  */
 class TroLyAiActivity : Activity() {
 
@@ -55,23 +57,8 @@ class TroLyAiActivity : Activity() {
 
     private var dangHoi = false
 
-    /**
-     * Man hinh dang khoa hay khong — hoi MOT LAN luc mo, roi giu nguyen ca phien.
-     *
-     * Man AI vao duoc tu HOP CONG CU MAN KHOA (xem res/xml/notes_keyboard_structure.xml),
-     * tuc mo duoc ma khong can mo khoa may. Nguoi cam duoc may khi do ma doc
-     * duoc ca doan chat cu thi coi nhu doc luon nhung gi chu may da hoi — trong
-     * do co the co ca noi dung ghi chu. Nen khi dang khoa:
-     *
-     *   * KHONG nap doan chat cu — mo ra la trang, hoi moi thi duoc;
-     *   * KHONG luu lai doan vua hoi — neu luu ma khong nap thi lan sau doan cu
-     *     bi de mat.
-     *
-     * Muon bo che nay (doi lay tien) thi xoa dieu kien o [napDoanChat]/[luuDoanChat].
-     */
-    private val dangKhoaMan: Boolean by lazy {
-        (getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager)?.isKeyguardLocked == true
-    }
+    /** Cuoc tro chuyen dang mo. 0 = chua ghi xuong (chua noi gi). */
+    private var hoiThoaiId = 0L
 
     private val mau by lazy { BangMau.cua(this) }
     private val md by lazy { resources.displayMetrics }
@@ -95,6 +82,15 @@ class TroLyAiActivity : Activity() {
     override fun onDestroy() {
         nen.shutdown()
         super.onDestroy()
+    }
+
+    override fun onBackPressed() {
+        // Ngan keo dang mo thi back la dong no, chua phai roi man hinh.
+        if (::bangNganKeo.isInitialized && bangNganKeo.visibility == View.VISIBLE) {
+            dongNganKeo()
+            return
+        }
+        super.onBackPressed()
     }
 
     // ---- Giao dien ----
@@ -123,14 +119,150 @@ class TroLyAiActivity : Activity() {
         goc.addView(oCuon, LinearLayout.LayoutParams(MATCH, 0, 1f))
 
         goc.addView(thanhNhap(), LinearLayout.LayoutParams(MATCH, WRAP))
-        return goc
+
+        // Ngan keo nam DE LEN tren cung, trong mot FrameLayout — de trong cot
+        // doc thi no chiem cho va day man chat hep lai.
+        return FrameLayout(this).apply {
+            setBackgroundColor(mau.nen)
+            addView(goc, FrameLayout.LayoutParams(MATCH, MATCH))
+            addView(dungNganKeo())
+        }
+    }
+
+    // ---- Ngan keo lich su tro chuyen ----
+
+    private lateinit var manNganKeo: View
+    private lateinit var bangNganKeo: LinearLayout
+    private lateinit var danhSachChat: LinearLayout
+
+    /**
+     * Ngan keo trai: danh sach cac cuoc tro chuyen.
+     *
+     * Tu dung chu khong dung `DrawerLayout` — lop do nam trong AndroidX, ma ca
+     * app co y khong keo AndroidX vao. Phan viec that su chi la mot tam mo va
+     * mot bang truot, deu lam bang `translationX`.
+     */
+    private fun dungNganKeo(): View {
+        val hop = FrameLayout(this)
+
+        // Tam mo phia sau: bam vao la dong. Khong co no thi bam ra ngoai ngan keo
+        // se cham thang vao man chat dang bi che.
+        manNganKeo = View(this).apply {
+            setBackgroundColor(0x99000000.toInt())
+            alpha = 0f
+            visibility = View.GONE
+            setOnClickListener { dongNganKeo() }
+        }
+        hop.addView(manNganKeo, FrameLayout.LayoutParams(MATCH, MATCH))
+
+        danhSachChat = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+
+        bangNganKeo = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(mau.nenThanhDuoi)
+            visibility = View.GONE
+            setPadding(0, 0, 0, dp(16))
+            setOnApplyWindowInsetsListener { v, insets ->
+                val thanh = insets.getInsets(WindowInsets.Type.systemBars())
+                v.setPadding(0, thanh.top, 0, thanh.bottom + dp(16))
+                insets
+            }
+            addView(
+                TextView(this@TroLyAiActivity).apply {
+                    text = "Lịch sử trò chuyện"
+                    setTextColor(mau.chuChinh)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
+                    setPadding(dp(16), dp(16), dp(16), dp(8))
+                },
+            )
+            addView(
+                hangNganKeo("＋  Trò chuyện mới", mau.nhan) { chatMoi() },
+                LinearLayout.LayoutParams(MATCH, WRAP),
+            )
+            addView(ScrollView(this@TroLyAiActivity).apply { addView(danhSachChat) })
+        }
+        hop.addView(
+            bangNganKeo,
+            FrameLayout.LayoutParams((md.widthPixels * 0.78f).toInt(), MATCH),
+        )
+        return hop
+    }
+
+    private fun hangNganKeo(chu: String, to: Int, bam: () -> Unit): TextView =
+        TextView(this).apply {
+            text = chu
+            setTextColor(to)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+            setPadding(dp(16), dp(12), dp(16), dp(12))
+            isClickable = true
+            maxLines = 2
+            ellipsize = android.text.TextUtils.TruncateAt.END
+            setOnClickListener { bam() }
+        }
+
+    private fun moNganKeo() {
+        napDanhSachChat()
+        val rong = (md.widthPixels * 0.78f)
+        bangNganKeo.translationX = -rong
+        bangNganKeo.visibility = View.VISIBLE
+        manNganKeo.visibility = View.VISIBLE
+        bangNganKeo.animate().translationX(0f).setDuration(180).start()
+        manNganKeo.animate().alpha(1f).setDuration(180).start()
+    }
+
+    private fun dongNganKeo() {
+        val rong = (md.widthPixels * 0.78f)
+        bangNganKeo.animate().translationX(-rong).setDuration(160)
+            .withEndAction { bangNganKeo.visibility = View.GONE }.start()
+        manNganKeo.animate().alpha(0f).setDuration(160)
+            .withEndAction { manNganKeo.visibility = View.GONE }.start()
+    }
+
+    private fun napDanhSachChat() {
+        danhSachChat.removeAllViews()
+        val ds = kho.danhSachHoiThoai()
+        if (ds.isEmpty()) {
+            danhSachChat.addView(
+                TextView(this).apply {
+                    text = "Chưa có cuộc trò chuyện nào"
+                    setTextColor(mau.chuMo)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                    setPadding(dp(16), dp(12), dp(16), dp(12))
+                },
+            )
+            return
+        }
+        for (t in ds) {
+            val nhan = t.tieuDe.ifBlank { "Chưa đặt tên" } + XUONG + NgayVN.nhanDanhSach(t.ngaySua)
+            val hang = hangNganKeo(nhan, if (t.id == hoiThoaiId) mau.nhan else mau.chuChinh) {
+                moHoiThoai(t.id)
+            }
+            hang.setOnLongClickListener {
+                hoiXoaHoiThoai(t.id, t.tieuDe)
+                true
+            }
+            danhSachChat.addView(hang, LinearLayout.LayoutParams(MATCH, WRAP))
+        }
+    }
+
+    private fun hoiXoaHoiThoai(id: Long, tieuDe: String) {
+        android.app.AlertDialog.Builder(this, mau.themeHopThoai)
+            .setTitle(tieuDe.ifBlank { "Cuộc trò chuyện" })
+            .setMessage("Xoá cuộc trò chuyện này?")
+            .setNegativeButton("Huỷ", null)
+            .setPositiveButton("Xoá") { _, _ ->
+                kho.xoaHoiThoai(id)
+                if (id == hoiThoaiId) chatMoi() else napDanhSachChat()
+            }
+            .show()
     }
 
     private fun thanhTren(): View = LinearLayout(this).apply {
         orientation = LinearLayout.HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
-        setPadding(dp(14), 0, dp(8), 0)
+        setPadding(dp(4), 0, dp(8), 0)
 
+        addView(nutChu("☰") { moNganKeo() })
         addView(
             TextView(this@TroLyAiActivity).apply {
                 text = "Trợ lý AI"
@@ -140,7 +272,6 @@ class TroLyAiActivity : Activity() {
             LinearLayout.LayoutParams(0, WRAP, 1f),
         )
         addView(nutChu("⚙") { hienCaiDat() })
-        addView(nutChu("Xoá") { xoaDoanChat() })
     }
 
     private fun thanhNhap(): View = LinearLayout(this).apply {
@@ -406,15 +537,24 @@ class TroLyAiActivity : Activity() {
 
     // ---- Nho doan chat ----
 
+    /**
+     * Nap cuoc tro chuyen dang mo len man hinh.
+     *
+     * Mo lai app thi vao dung cuoc gan nhat — nguoi dung khong phai di tim trong
+     * lich su thu ho vua noi gi cach day ba phut.
+     */
     private fun napDoanChat() {
-        if (dangKhoaMan) {
-            hienNhap("Máy đang khoá — chỉ hỏi mới được, đoạn trò chuyện cũ ẩn đi.")
-            return
-        }
-        val raw = caiDat().getString(K_DOAN_CHAT, "").orEmpty()
-        if (raw.isEmpty()) return
+        val gan = kho.danhSachHoiThoai(1).firstOrNull() ?: return
+        moHoiThoai(gan.id, dongKeo = false)
+    }
+
+    private fun moHoiThoai(id: Long, dongKeo: Boolean = true) {
+        hoiThoaiId = id
+        doanChat.clear()
+        khungTin.removeAllViews()
+
         try {
-            val m = JSONArray(raw)
+            val m = JSONArray(kho.docHoiThoai(id))
             for (i in 0 until m.length()) {
                 val o = m.optJSONObject(i) ?: continue
                 val vai = o.optString("vai")
@@ -425,26 +565,45 @@ class TroLyAiActivity : Activity() {
         } catch (_: Exception) {
             // Doan chat cu hong thi bo qua, khong lam vo man hinh.
         }
+        if (dongKeo) dongNganKeo()
+        cuonXuongCuoi()
+    }
+
+    /**
+     * Bat dau mot cuoc moi.
+     *
+     * Chi dat lai [hoiThoaiId] ve 0 — cuoc cu da nam trong CSDL, khong dung gi
+     * toi no. Hang moi chi sinh ra khi nguoi dung noi cau dau tien (xem
+     * [KhoDuLieu.luuHoiThoai]), nen mo tro ly roi thoat ngay khong de lai muc
+     * trong nao.
+     */
+    private fun chatMoi() {
+        hoiThoaiId = 0L
+        doanChat.clear()
+        khungTin.removeAllViews()
+        dongNganKeo()
+        hienNhap("Cuộc trò chuyện mới. Cứ nói bạn muốn gì.")
     }
 
     private fun luuDoanChat() {
-        // Dang khoa man thi khong nap doan cu -> cung khong duoc ghi de, khong
-        // thi doan chat cu bi mot lan hoi tu man khoa xoa sach.
-        if (dangKhoaMan) return
         // Chi giu vai chuc luot gan nhat: gui het lich su cho AI vua ton tien
         // vua de vuot han muc ngu canh.
         val giu = doanChat.takeLast(TRAN_LUOT)
+        if (giu.isEmpty()) return
+
         val m = JSONArray()
         for (l in giu) m.put(JSONObject().put("vai", l.vai).put("chu", l.chu))
-        caiDat().edit().putString(K_DOAN_CHAT, m.toString()).apply()
+        hoiThoaiId = kho.luuHoiThoai(hoiThoaiId, tenDoan(giu), m.toString())
     }
 
-    private fun xoaDoanChat() {
-        doanChat.clear()
-        khungTin.removeAllViews()
-        if (!dangKhoaMan) caiDat().edit().remove(K_DOAN_CHAT).apply()
-        hienNhap("Đã xoá đoạn trò chuyện.")
-    }
+    /**
+     * Ten cuoc tro chuyen = cau DAU TIEN cua nguoi dung.
+     *
+     * Khong nho AI dat ten: do la them mot luot goi mang co tien cho mot thu ma
+     * cau dau tien von da noi ro.
+     */
+    private fun tenDoan(luot: List<LuotChat>): String =
+        luot.firstOrNull { it.vai == LuotChat.NGUOI }?.chu?.trim()?.take(60).orEmpty()
 
     private fun caiDat() = getSharedPreferences(TEP_CAI_DAT, Context.MODE_PRIVATE)
 
@@ -453,7 +612,7 @@ class TroLyAiActivity : Activity() {
         const val WRAP = ViewGroup.LayoutParams.WRAP_CONTENT
 
         const val TEP_CAI_DAT = "ghichu_ai"
-        const val K_DOAN_CHAT = "doan_chat"
         const val TRAN_LUOT = 30
+        const val XUONG = "\n"
     }
 }
