@@ -35,6 +35,21 @@ class KhoDuLieu(context: Context) : SQLiteOpenHelper(
      */
     private val ung: Context = context.applicationContext
 
+    /**
+     * Bao ra ngoai rang du lieu vua doi.
+     *
+     * CO Y bao tu day chu khong tu noi goi: co nhieu duong ghi (hop sua tay, tro
+     * ly AI, keo ve tu may chu, sua ghi chu) — de moi noi tu nho goi la truoc sau
+     * gi cung quen mot cho, roi widget hien du lieu cu hoac nhac nho im lang ma
+     * khong ai hieu vi sao.
+     *
+     * DUNG goi trong mot giao dich dang mo: [NhacNho.datLai] doc lai CSDL.
+     */
+    fun baoDoi() {
+        LichTrinhWidget.capNhat(ung)
+        NhacNho.datLai(ung)
+    }
+
     override fun onCreate(db: SQLiteDatabase) {
         taoBangSuKien(db)
         taoBangGhiChu(db)
@@ -261,7 +276,7 @@ class KhoDuLieu(context: Context) : SQLiteOpenHelper(
             writableDatabase.update(BANG, v, "_id = ?", arrayOf(sk.id.toString()))
             sk.id
         }
-        LichTrinhWidget.capNhat(ung)
+        baoDoi()
         return id
     }
 
@@ -278,7 +293,7 @@ class KhoDuLieu(context: Context) : SQLiteOpenHelper(
             put("ngay_sua", System.currentTimeMillis())
         }
         writableDatabase.update(BANG, v, "_id = ?", arrayOf(id.toString()))
-        LichTrinhWidget.capNhat(ung)
+        baoDoi()
     }
 
     private fun doc(c: android.database.Cursor) = SuKien(
@@ -390,7 +405,7 @@ class KhoDuLieu(context: Context) : SQLiteOpenHelper(
 
         val sua = db.update(BANG, v, "uid = ?", arrayOf(uid))
         if (sua == 0) db.insert(BANG, null, v)
-        LichTrinhWidget.capNhat(ung)
+        baoDoi()
         return true
     }
 

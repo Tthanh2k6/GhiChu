@@ -65,6 +65,19 @@
             android:exported="false" />
 
         <!--
+          Nhan bao thuc nhac nho, va nhan tin khoi dong xong de hen lai.
+          `exported="true"` vi ANH `BOOT_COMPLETED` la broadcast cua he thong.
+        -->
+        <receiver
+            android:name="com.ghichu.BaoThuc"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
+        <!--
           Widget Lich trinh. `exported="true"` la BAT BUOC: he thong widget goi
           broadcast tu tien trinh khac vao day, dat false la widget khong bao gio
           duoc ve.

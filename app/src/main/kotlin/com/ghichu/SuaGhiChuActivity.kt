@@ -394,14 +394,7 @@ class SuaGhiChuActivity : Activity() {
         lam += { hienChonThuMuc() }
 
         muc += if (nhacLuc == null) "Đặt nhắc nhở…" else "Bỏ nhắc nhở"
-        lam += {
-            if (nhacLuc == null) {
-                Toast.makeText(this, "Nhắc nhở làm ở chặng sau", Toast.LENGTH_SHORT).show()
-            } else {
-                nhacLuc = null
-                oChan.text = nhanChan(goc)
-            }
-        }
+        lam += { if (nhacLuc == null) hienDatNhac() else datNhac(null) }
 
         muc += "Chia sẻ"
         lam += { chiaSe() }
@@ -442,6 +435,69 @@ class SuaGhiChuActivity : Activity() {
                 oChan.text = nhanChan(goc)
             }
             .show()
+    }
+
+    /**
+     * Chon ngay roi chon gio de nhac.
+     *
+     * Hai hop noi tiep nhau chu khong mot hop gop: khung co san
+     * (`DatePickerDialog`, `TimePickerDialog`) da theo dung thoi quen cua may va
+     * cua ngon ngu he thong — tu ve mot hop gop la mat het cai do de doi lay ve
+     * ngoai dep hon mot chut.
+     */
+    private fun hienDatNhac() {
+        val moc = java.util.Calendar.getInstance().apply {
+            timeInMillis = System.currentTimeMillis()
+            // Mac dinh la gio tron ke tiep — khong ai dat nhac vao 14:37.
+            add(java.util.Calendar.HOUR_OF_DAY, 1)
+            set(java.util.Calendar.MINUTE, 0)
+        }
+
+        android.app.DatePickerDialog(
+            this, mau.themeHopThoai,
+            { _, nam, thang, ngay ->
+                android.app.TimePickerDialog(
+                    this, mau.themeHopThoai,
+                    { _, gio, phut ->
+                        moc.set(nam, thang, ngay, gio, phut)
+                        moc.set(java.util.Calendar.SECOND, 0)
+                        moc.set(java.util.Calendar.MILLISECOND, 0)
+                        if (moc.timeInMillis <= System.currentTimeMillis()) {
+                            Toast.makeText(this, "Mốc đó đã qua rồi", Toast.LENGTH_SHORT).show()
+                        } else {
+                            datNhac(moc.timeInMillis)
+                        }
+                    },
+                    moc.get(java.util.Calendar.HOUR_OF_DAY), moc.get(java.util.Calendar.MINUTE),
+                    android.text.format.DateFormat.is24HourFormat(this),
+                ).show()
+            },
+            moc.get(java.util.Calendar.YEAR),
+            moc.get(java.util.Calendar.MONTH),
+            moc.get(java.util.Calendar.DAY_OF_MONTH),
+        ).show()
+    }
+
+    /**
+     * Ghi moc nhac XUONG NGAY, khong doi `onPause`.
+     *
+     * Bao thuc chi duoc hen lai khi CSDL doi. De den `onPause` thi nguoi dung dat
+     * gio xong, bam back, va van phai may man moi kip — con neu ho bam "Chuyen
+     * vao thung rac" ngay sau do thi moc vua dat mat luon.
+     */
+    private fun datNhac(luc: Long?) {
+        nhacLuc = luc
+        if (id == 0L) luu()
+        if (id != 0L) {
+            kho.datNhac(id, luc)
+            goc = kho.theoId(id)
+        }
+        oChan.text = nhanChan(goc)
+        Toast.makeText(
+            this,
+            if (luc == null) "Đã bỏ nhắc nhở" else "Sẽ nhắc lúc " + NgayVN.nhanDanhSach(luc),
+            Toast.LENGTH_SHORT,
+        ).show()
     }
 
     private fun chiaSe() {

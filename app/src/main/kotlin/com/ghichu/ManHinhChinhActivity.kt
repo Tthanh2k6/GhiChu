@@ -91,6 +91,8 @@ class ManHinhChinhActivity : Activity() {
             addView(dungNutThem())
         })
 
+        xinQuyenThongBao()
+
         // Don dep dinh ky, chay o luong khac: ca hai viec deu quet toan bo CSDL,
         // lam o luong chinh la mo app thay khung mot cai khi co nhieu ghi chu.
         Thread {
@@ -100,6 +102,20 @@ class ManHinhChinhActivity : Activity() {
             // Xoa ghi chu co anh xong ma khong don thi tep anh nam lai mai.
             KhoAnh.donTepThua(this, Ung.cua(this).kho)
         }.start()
+    }
+
+    /**
+     * Xin quyen hien thong bao (Android 13 tro len).
+     *
+     * Xin o day chu khong xin luc dat nhac nho dau tien: he thong chi cho hoi
+     * MOT lan: hoi lan sau la hop khong hien nua. Hoi ngay man hinh dau, khi
+     * nguoi dung con dang xem app, thi con co co hoi giai thich neu ho tu choi.
+     */
+    private fun xinQuyenThongBao() {
+        if (android.os.Build.VERSION.SDK_INT < 33) return
+        val quyen = android.Manifest.permission.POST_NOTIFICATIONS
+        if (checkSelfPermission(quyen) == android.content.pm.PackageManager.PERMISSION_GRANTED) return
+        requestPermissions(arrayOf(quyen), 1)
     }
 
     override fun onResume() {

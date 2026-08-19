@@ -99,7 +99,7 @@ class KhoGhiChu(private val kho: KhoDuLieu) {
             put("ngay_sua", gio)
             put("ban_nhap", 1)
         }
-        return if (g.id == 0L) {
+        val id = if (g.id == 0L) {
             v.put("ngay_tao", if (g.ngayTao > 0) g.ngayTao else gio)
             v.put("uid", g.uid.ifEmpty { Uid.moi() })
             kho.writableDatabase.insert(KhoDuLieu.BANG_GHI_CHU, null, v)
@@ -109,6 +109,8 @@ class KhoGhiChu(private val kho: KhoDuLieu) {
             )
             g.id
         }
+        kho.baoDoi()
+        return id
     }
 
     fun datGhim(id: Long, ghim: Boolean) = doiCot(id) { put("ghim", if (ghim) 1 else 0) }
@@ -162,6 +164,7 @@ class KhoGhiChu(private val kho: KhoDuLieu) {
             put("ban_nhap", 1)
         }
         kho.writableDatabase.update(KhoDuLieu.BANG_GHI_CHU, v, "_id = ?", arrayOf(id.toString()))
+        kho.baoDoi()
     }
 
     // ------------------------------------------------------------ thu muc
@@ -327,6 +330,7 @@ class KhoGhiChu(private val kho: KhoDuLieu) {
         if (db.update(KhoDuLieu.BANG_GHI_CHU, v, "uid = ?", arrayOf(uid)) == 0) {
             db.insert(KhoDuLieu.BANG_GHI_CHU, null, v)
         }
+        kho.baoDoi()
         return true
     }
 
