@@ -171,4 +171,36 @@ class DinhDangTest {
         val markup = """<text indent="1"><b>Việc</b> <font color="#ff0000">gấp</font></text>"""
         assertEquals("Việc gấp", NoiDungGhiChu.chuTron(markup))
     }
+
+    // ---- ghi am ----
+
+    @Test
+    fun `khoi ghi am giu ten tep va do dai qua mot vong`() {
+        val markup = """<audio src="ga_abc.m4a" giay="23" />"""
+        val k = KhoiNoiDung.doc(markup)
+        assertEquals(Khoi.GHI_AM, k[0].loai)
+        assertEquals("ga_abc.m4a", k[0].tep)
+        assertEquals(23, k[0].giay)
+        assertEquals(markup, KhoiNoiDung.ghi(k))
+    }
+
+    @Test
+    fun `ghi am nam xen giua chu van dung thu tu`() {
+        val markup = listOf(
+            """<text indent="1">Ghi lại cuộc họp</text>""",
+            """<audio src="ga_1.m4a" giay="95" />""",
+            """<text indent="1">Nhớ gửi biên bản</text>""",
+        ).joinToString("\n")
+        val k = KhoiNoiDung.doc(markup)
+        assertEquals(listOf(Khoi.CHU, Khoi.GHI_AM, Khoi.CHU), k.map { it.loai })
+        assertEquals(markup, KhoiNoiDung.ghi(k))
+    }
+
+    @Test
+    fun `do dai hien dung dang phut giay va them gio khi dai`() {
+        assertEquals("0:00", KhoGhiAm.doDai(0))
+        assertEquals("0:23", KhoGhiAm.doDai(23))
+        assertEquals("1:35", KhoGhiAm.doDai(95))
+        assertEquals("1:05:09", KhoGhiAm.doDai(3909))
+    }
 }

@@ -10,7 +10,14 @@ package com.ghichu
  * ```
  * [doan] la phan chu ben trong, da tach thanh cac doan cung kieu — xem [DinhDang].
  */
-class Khoi(val loai: Int, val doan: List<Doan> = emptyList()) {
+class Khoi(
+    val loai: Int,
+    val doan: List<Doan> = emptyList(),
+    /** Chi co nghia voi [GHI_AM]: ten tep trong `files/ghiam/`. */
+    val tep: String = "",
+    /** Chi co nghia voi [GHI_AM]: do dai ban ghi, tinh bang giay. */
+    val giay: Int = 0,
+) {
 
     /** Chu tron cua ca dong, khong kem dinh dang. */
     val chu: String get() = doan.joinToString("") { it.chu }
@@ -20,6 +27,7 @@ class Khoi(val loai: Int, val doan: List<Doan> = emptyList()) {
         const val O_CHUA_TICK = 1
         const val O_DA_TICK = 2
         const val DUONG_KE = 3
+        const val GHI_AM = 4
     }
 }
 
@@ -49,6 +57,11 @@ object KhoiNoiDung {
                 DinhDang.doc(d.substring(m.range.last + 1)),
             )
             "hr" -> Khoi(Khoi.DUONG_KE)
+            "audio" -> Khoi(
+                Khoi.GHI_AM,
+                tep = thuocTinh(m!!.groupValues[2], "src").orEmpty(),
+                giay = thuocTinh(m.groupValues[2], "giay")?.toIntOrNull() ?: 0,
+            )
             "text" -> Khoi(Khoi.CHU, DinhDang.doc(boTheDong(d.substring(m!!.range.last + 1), "text")))
             // Khong nhan ra the dau dong thi coi ca dong la chu. Ghi chu cu, hoac
             // ghi chu do may khac ghi, khong nhat thiet dung bo the cua ta — mat
@@ -56,6 +69,12 @@ object KhoiNoiDung {
             else -> Khoi(Khoi.CHU, DinhDang.doc(d))
         }
     }
+
+    private val THUOC_TINH = Regex("([a-zA-Z-]+)\\s*=\\s*\"([^\"]*)\"")
+
+    private fun thuocTinh(phan: String, ten: String): String? =
+        THUOC_TINH.findAll(phan).firstOrNull { it.groupValues[1].equals(ten, true) }
+            ?.groupValues?.get(2)
 
     private fun boTheDong(chu: String, ten: String): String {
         val dong = "</$ten>"
@@ -69,6 +88,7 @@ object KhoiNoiDung {
             Khoi.O_CHUA_TICK -> "<input type=\"checkbox\" indent=\"1\" />$trong"
             Khoi.O_DA_TICK -> "<input type=\"checkbox\" checked=\"true\" indent=\"1\" />$trong"
             Khoi.DUONG_KE -> "<hr />"
+            Khoi.GHI_AM -> "<audio src=\"" + k.tep + "\" giay=\"" + k.giay + "\" />"
             else -> "<text indent=\"1\">$trong</text>"
         }
     }

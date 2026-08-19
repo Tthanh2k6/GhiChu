@@ -103,8 +103,9 @@ class ManHinhChinhActivity : Activity() {
             // Thung rac khong tu don thi phinh mai, ma nguoi dung khong bao gio
             // nho vao don.
             kho.donRacQuaHan()
-            // Xoa ghi chu co anh xong ma khong don thi tep anh nam lai mai.
+            // Xoa ghi chu co anh / ghi am xong ma khong don thi tep nam lai mai.
             KhoAnh.donTepThua(this, Ung.cua(this).kho)
+            KhoGhiAm.donTepThua(this, Ung.cua(this).kho)
         }.start()
     }
 

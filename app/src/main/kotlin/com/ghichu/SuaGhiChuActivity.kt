@@ -193,6 +193,7 @@ class SuaGhiChuActivity : Activity() {
         hang.addView(nutChu("🎨", "Màu chữ") { hienMauChu() })
         hang.addView(nutChu("☑", "Ô tick") { doiOTick() })
         hang.addView(nutChu("🖼", "Chèn ảnh") { chonAnh() })
+        hang.addView(nutChu("🎙", "Ghi âm") { ghiAm() })
         hang.addView(nutChu("—", "Đường kẻ") { chenDuongKe() })
 
         return HorizontalScrollView(this).apply {
@@ -297,6 +298,14 @@ class SuaGhiChuActivity : Activity() {
         val dauDong = bo.getLineStart(hang)
         val chu = oThan.text
 
+        // Dong ghi am: cham vao dau cung la phat/dung, khong phai dat con tro.
+        val cuoiDong = bo.getLineEnd(hang)
+        (chu as? Spanned)?.getSpans(dauDong, cuoiDong, SoanThao.TheGhiAm::class.java)
+            ?.firstOrNull()?.let {
+                batTatPhat(it)
+                return true
+            }
+
         if (dauDong + 2 > chu.length) return false
         val dau = chu.subSequence(dauDong, dauDong + 2).toString()
         if (dau != SoanThao.O_TRONG && dau != SoanThao.O_TICK) return false
@@ -379,6 +388,126 @@ class SuaGhiChuActivity : Activity() {
                 dau, cuoi, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
             )
         }
+    }
+
+    // ------------------------------------------------------------ ghi am
+
+    private var phatGhiAm: android.media.MediaPlayer? = null
+
+    private fun ghiAm() {
+        val quyen = android.Manifest.permission.RECORD_AUDIO
+        if (checkSelfPermission(quyen) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(quyen), MA_QUYEN_GHI_AM)
+            return
+        }
+
+        val phien = KhoGhiAm.Phien(this, KhoGhiAm.tenMoi())
+        if (!phien.bat()) {
+            Toast.makeText(this, "Không mở được micro", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val dongHo = TextView(this).apply {
+            gravity = Gravity.CENTER
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 34f)
+            setTextColor(mau.chuChinh)
+            setPadding(0, dp(24), 0, dp(24))
+            text = KhoGhiAm.doDai(0)
+        }
+
+        val hop = AlertDialog.Builder(this, mau.themeHopThoai)
+            .setTitle("Đang ghi âm")
+            .setView(dongHo)
+            .setCancelable(false)
+            .setNegativeButton("Huỷ") { _, _ -> phien.bo() }
+            .setPositiveButton("Xong", null)
+            .create()
+
+        // Dong ho tu dem. Dung `Handler` cua luong chinh chu khong luong rieng:
+        // no cham vao view, ma view chi duoc dong tu luong chinh.
+        val chinh = android.os.Handler(mainLooper)
+        val dem = object : Runnable {
+            override fun run() {
+                val giay = phien.daGhi()
+                dongHo.text = KhoGhiAm.doDai(giay)
+                // Cham tran thi tu dung, khong doi nguoi dung — xem KhoGhiAm.TOI_DA_GIAY.
+                if (giay >= KhoGhiAm.TOI_DA_GIAY) {
+                    hop.dismiss()
+                    xongGhiAm(phien)
+                } else {
+                    chinh.postDelayed(this, 500)
+                }
+            }
+        }
+        chinh.postDelayed(dem, 500)
+
+        hop.setOnDismissListener { chinh.removeCallbacks(dem) }
+        hop.setOnShowListener {
+            hop.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                hop.dismiss()
+                xongGhiAm(phien)
+            }
+        }
+        hop.show()
+    }
+
+    private fun xongGhiAm(phien: KhoGhiAm.Phien) {
+        val giay = phien.dung()
+        if (giay <= 0) {
+            Toast.makeText(this, "Bản ghi quá ngắn", Toast.LENGTH_SHORT).show()
+            return
+        }
+        chenGhiAm(phien.ten, giay)
+    }
+
+    private fun chenGhiAm(ten: String, giay: Int) {
+        val chu = oThan.text
+        val vt = oThan.selectionEnd.coerceIn(0, chu.length)
+        val truoc = if (vt > 0 && chu[vt - 1] != '\n') "\n" else ""
+
+        val nhan = SoanThao.nhanGhiAm(giay)
+        val them = SpannableStringBuilder(truoc + nhan + "\n")
+        them.setSpan(
+            SoanThao.TheGhiAm(ten, giay), truoc.length, truoc.length + nhan.length,
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
+        )
+        chu.insert(vt, them)
+    }
+
+    /** Bam vao mot dong ghi am: dang im thi phat, dang phat thi dung. */
+    private fun batTatPhat(the: SoanThao.TheGhiAm) {
+        if (phatGhiAm != null) {
+            dungPhat()
+            return
+        }
+        val may = KhoGhiAm.phat(this, the.ten) { dungPhat() }
+        if (may == null) {
+            Toast.makeText(this, "Bản ghi không có trên máy này", Toast.LENGTH_SHORT).show()
+            return
+        }
+        phatGhiAm = may
+    }
+
+    private fun dungPhat() {
+        try {
+            phatGhiAm?.stop()
+            phatGhiAm?.release()
+        } catch (_: Exception) {
+            // Da giai phong roi thi thoi.
+        }
+        phatGhiAm = null
+    }
+
+    override fun onDestroy() {
+        dungPhat()
+        super.onDestroy()
+    }
+
+    override fun onRequestPermissionsResult(ma: Int, quyen: Array<out String>, ketQua: IntArray) {
+        super.onRequestPermissionsResult(ma, quyen, ketQua)
+        if (ma != MA_QUYEN_GHI_AM) return
+        if (ketQua.firstOrNull() == android.content.pm.PackageManager.PERMISSION_GRANTED) ghiAm()
+        else Toast.makeText(this, "Cần quyền micro để ghi âm", Toast.LENGTH_SHORT).show()
     }
 
     // ------------------------------------------------------------ hanh dong
@@ -726,5 +855,6 @@ class SuaGhiChuActivity : Activity() {
         const val KHOA_ID = "id"
         const val KHOA_THU_MUC = "thu_muc"
         private const val MA_CHON_ANH = 1
+        private const val MA_QUYEN_GHI_AM = 2
     }
 }

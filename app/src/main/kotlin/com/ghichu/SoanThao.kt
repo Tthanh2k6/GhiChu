@@ -35,6 +35,9 @@ object SoanThao {
     /** Mot dong ke ngang, ve bang ky tu — `EditText` khong ve duoc hinh giua chu. */
     const val DUONG_KE = "───────────"
 
+    /** Nhan cua mot dong ghi am trong o soan thao. */
+    fun nhanGhiAm(giay: Int): String = "🎙 Ghi âm · " + KhoGhiAm.doDai(giay)
+
     private const val TI_LE_TO = 1.45f
     private const val TI_LE_VUA = 1.2f
 
@@ -51,6 +54,18 @@ object SoanThao {
                 Khoi.O_DA_TICK -> ra.append(O_TICK)
                 Khoi.DUONG_KE -> {
                     ra.append(DUONG_KE)
+                    continue
+                }
+                Khoi.GHI_AM -> {
+                    val dau = ra.length
+                    ra.append(nhanGhiAm(k.giay))
+                    // Ten tep va do dai song trong SPAN chu khong trong chu hien
+                    // ra: nguoi dung khong phai nhin thay `ga_m3k1z9q4.m4a`, ma
+                    // ho co go de len nhan thi ban ghi van con nguyen.
+                    ra.setSpan(
+                        TheGhiAm(k.tep, k.giay), dau, ra.length,
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
+                    )
                     continue
                 }
             }
@@ -91,6 +106,9 @@ object SoanThao {
      */
     class TheAnh(val ten: String)
 
+    /** Danh dau mot dong la ban ghi am; giu ten tep va do dai. */
+    class TheGhiAm(val ten: String, val giay: Int)
+
     // ------------------------------------------------------------ chu -> markup
 
     fun ghi(chu: CharSequence): String {
@@ -110,6 +128,13 @@ object SoanThao {
     private fun mot(chu: CharSequence, sp: Spanned?, dauDong: Int, cuoiDong: Int): Khoi {
         val nguyen = chu.subSequence(dauDong, cuoiDong).toString()
         if (nguyen == DUONG_KE) return Khoi(Khoi.DUONG_KE)
+
+        // Ghi am: nhan dien bang SPAN chu khong bang chu tren man hinh — nguoi
+        // dung sua nhan thi dong do van la ban ghi, con go tay dung chu "🎙 Ghi
+        // âm · 0:23" thi khong bong dung thanh ban ghi.
+        sp?.getSpans(dauDong, cuoiDong, TheGhiAm::class.java)?.firstOrNull()?.let {
+            return Khoi(Khoi.GHI_AM, tep = it.ten, giay = it.giay)
+        }
 
         val loai = when {
             nguyen.startsWith(O_TICK) -> Khoi.O_DA_TICK
