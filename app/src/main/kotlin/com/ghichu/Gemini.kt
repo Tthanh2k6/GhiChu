@@ -11,6 +11,14 @@ import java.net.URL
 /** Loi da dich sang tieng nguoi — cu nem ra la man hinh hien nguyen van. */
 class LoiGemini(message: String) : IOException(message)
 
+/**
+ * Mot buc anh gui kem cau hoi.
+ *
+ * [base64] la anh da ma hoa base64 **khong xuong dong** — Gemini nhan mot chuoi
+ * lien, co dau xuong dong la no bao du lieu hong.
+ */
+class Anh(val kieu: String, val base64: String)
+
 /** Mot luot trong doan hoi thoai gui kem cho AI. */
 class LuotChat(val vai: String, val chu: String) {
     companion object {
@@ -88,6 +96,7 @@ object Gemini {
         heThong: String? = null,
         lichSu: List<LuotChat> = emptyList(),
         jsonMode: Boolean = false,
+        anh: Anh? = null,
     ): String {
         val k = khoa
         if (k.isEmpty()) {
@@ -95,7 +104,7 @@ object Gemini {
         }
         val m = model
 
-        val than = dungThan(loiNhac, heThong, lichSu, jsonMode)
+        val than = dungThan(loiNhac, heThong, lichSu, jsonMode, anh)
 
         val diaChi =
             "https://generativelanguage.googleapis.com/v1beta/models/$m:generateContent?key=$k"
@@ -142,6 +151,7 @@ object Gemini {
         heThong: String?,
         lichSu: List<LuotChat>,
         jsonMode: Boolean,
+        anh: Anh? = null,
     ): JSONObject = JSONObject().apply {
         put(
             "contents",
@@ -157,7 +167,25 @@ object Gemini {
                 put(
                     JSONObject().apply {
                         put("role", LuotChat.NGUOI)
-                        put("parts", JSONArray().put(JSONObject().put("text", loiNhac)))
+                        put(
+                            "parts",
+                            JSONArray().apply {
+                                // Anh dat TRUOC chu. Google khuyen nhu vay va do
+                                // cung la thu tu tu nhien: xem anh roi moi doc
+                                // cau hoi ve no.
+                                if (anh != null) {
+                                    put(
+                                        JSONObject().put(
+                                            "inline_data",
+                                            JSONObject()
+                                                .put("mime_type", anh.kieu)
+                                                .put("data", anh.base64),
+                                        ),
+                                    )
+                                }
+                                put(JSONObject().put("text", loiNhac))
+                            },
+                        )
                     },
                 )
             },

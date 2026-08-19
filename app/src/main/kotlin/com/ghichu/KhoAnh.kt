@@ -70,10 +70,12 @@ object KhoAnh {
         null
     }
 
-    private fun thuNho(b: Bitmap): Bitmap {
+    private fun thuNho(b: Bitmap): Bitmap = thuNhoVe(b, CANH_TOI_DA)
+
+    private fun thuNhoVe(b: Bitmap, canhToiDa: Int): Bitmap {
         val canh = maxOf(b.width, b.height)
-        if (canh <= CANH_TOI_DA) return b
-        val ti = CANH_TOI_DA.toFloat() / canh
+        if (canh <= canhToiDa) return b
+        val ti = canhToiDa.toFloat() / canh
         return Bitmap.createScaledBitmap(b, (b.width * ti).toInt(), (b.height * ti).toInt(), true)
     }
 
@@ -110,6 +112,31 @@ object KhoAnh {
 
         return BitmapDrawable(context.resources, bm).apply { setBounds(0, 0, rong, cao) }
     }
+
+    /**
+     * Doc mot anh nguoi dung chon, thu nho lai va ma hoa base64 de gui cho AI.
+     *
+     * **Thu nho manh hon anh trong ghi chu** (1024 thay vi 1600): anh di qua
+     * mang va tinh vao han muc ngu canh cua Gemini. 1024 la du de doc chu tren
+     * anh chup man hinh hay to giay, ma goi gui di chi vai tram KB.
+     */
+    fun choAi(context: Context, nguon: Uri): Anh? {
+        val goc = doc(context, nguon) ?: return null
+        val nho = thuNhoVe(goc, CANH_CHO_AI)
+        if (nho !== goc) goc.recycle()
+
+        return try {
+            val ra = java.io.ByteArrayOutputStream()
+            nho.compress(Bitmap.CompressFormat.JPEG, 85, ra)
+            Anh("image/jpeg", java.util.Base64.getEncoder().encodeToString(ra.toByteArray()))
+        } catch (_: Exception) {
+            null
+        } finally {
+            nho.recycle()
+        }
+    }
+
+    private const val CANH_CHO_AI = 1024
 
     /**
      * Xoa nhung tep anh khong con ghi chu nao nhac toi.

@@ -105,6 +105,11 @@ thân thiện, bằng tiếng Việt.
 
 Hôm nay là {{THU}}, {{NGAY}} (định dạng YYYY-MM-DD).
 
+Người dùng có thể đính kèm một tấm ảnh. Khi có ảnh, hãy ĐỌC nội dung trong ảnh
+(chữ viết tay, ảnh chụp màn hình, tờ lịch, hoá đơn…) rồi làm đúng việc họ nhờ —
+chép lại thành ghi chú, rút ra danh sách việc, hay tạo sự kiện. Vẫn trả về JSON
+đúng cấu trúc dưới đây, đừng mô tả ảnh lan man.
+
 Tự PHÁT HIỆN người dùng muốn gì, rồi LUÔN trả về JSON đúng cấu trúc:
 {
  "reply": "câu trò chuyện hiện cho người dùng — tự nhiên, có thể có câu hỏi lại",

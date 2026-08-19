@@ -292,6 +292,8 @@ class TroLyAiActivity : Activity() {
         }
         addView(oNhap, LinearLayout.LayoutParams(0, WRAP, 1f))
 
+        addView(nutChu("🖼") { chonAnh() })
+
         nutGui = Button(this@TroLyAiActivity).apply {
             text = "Gửi"
             isAllCaps = false
@@ -316,7 +318,8 @@ class TroLyAiActivity : Activity() {
     private fun hienMay(chu: String) = themTin(chu, laNguoi = false)
     private fun hienNhap(chu: String) = themTin(chu, laNguoi = false, mo = true)
 
-    private fun themTin(chu: String, laNguoi: Boolean, mo: Boolean = false) {
+    /** Tra ve chinh o vua them, de ben goi con go bo hoac sua no. */
+    private fun themTin(chu: String, laNguoi: Boolean, mo: Boolean = false): TextView {
         val o = TextView(this).apply {
             text = chu
             setTextColor(if (mo) mau.chuMo else mau.chuChinh)
@@ -335,6 +338,7 @@ class TroLyAiActivity : Activity() {
         }
         khungTin.addView(o, lp)
         cuonXuongCuoi()
+        return o
     }
 
     /**
@@ -439,6 +443,63 @@ class TroLyAiActivity : Activity() {
 
     // ---- Hoi AI ----
 
+    // ---- Anh gui kem ----
+
+    /**
+     * Anh dinh kem cho cau hoi KE TIEP. Gui xong thi bo.
+     *
+     * Chi kem duoc mot anh moi luot: goi Gemini tinh tien theo luong du lieu, va
+     * gan nhu moi cau hoi that su chi noi ve mot buc.
+     */
+    private var anhKem: Anh? = null
+    private var nhanAnhKem: TextView? = null
+
+    private fun chonAnh() {
+        startActivityForResult(
+            android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT).apply {
+                type = "image/*"
+                addCategory(android.content.Intent.CATEGORY_OPENABLE)
+            },
+            MA_CHON_ANH,
+        )
+    }
+
+    override fun onActivityResult(ma: Int, ketQua: Int, du: android.content.Intent?) {
+        super.onActivityResult(ma, ketQua, du)
+        if (ma != MA_CHON_ANH || ketQua != RESULT_OK) return
+        val nguon = du?.data ?: return
+
+        // Doc va thu nho o luong nen: mot anh may anh giai nen ra vai chuc MB.
+        nen.execute {
+            val a = KhoAnh.choAi(this, nguon)
+            chinh.post {
+                if (isFinishing || isDestroyed) return@post
+                if (a == null) {
+                    hienNhap("Không đọc được ảnh.")
+                    return@post
+                }
+                anhKem = a
+                hienNhanAnhKem()
+            }
+        }
+    }
+
+    private fun hienNhanAnhKem() {
+        boNhanAnhKem()
+        nhanAnhKem = hienNhap("🖼 Đã đính kèm ảnh — bấm vào đây để bỏ").apply {
+            isClickable = true
+            setOnClickListener {
+                anhKem = null
+                boNhanAnhKem()
+            }
+        }
+    }
+
+    private fun boNhanAnhKem() {
+        nhanAnhKem?.let { khungTin.removeView(it) }
+        nhanAnhKem = null
+    }
+
     private fun gui() {
         val chu = oNhap.text.toString().trim()
         if (chu.isEmpty() || dangHoi) return
@@ -448,7 +509,10 @@ class TroLyAiActivity : Activity() {
         }
 
         oNhap.setText("")
-        hienNguoi(chu)
+        val anh = anhKem
+        anhKem = null
+        boNhanAnhKem()
+        hienNguoi(if (anh == null) chu else "🖼  " + chu)
         val lichSu = ArrayList(doanChat)
         doanChat += LuotChat(LuotChat.NGUOI, chu)
         datDangHoi(true)
@@ -463,7 +527,9 @@ class TroLyAiActivity : Activity() {
             )
 
             val ketQua = try {
-                val raw = Gemini.sinh(chu, heThong = loiNhac, lichSu = lichSu, jsonMode = true)
+                val raw = Gemini.sinh(
+                    chu, heThong = loiNhac, lichSu = lichSu, jsonMode = true, anh = anh,
+                )
                 AiDocDeXuat.doc(raw) to null
             } catch (e: Exception) {
                 null to (e.message ?: e.toString())
@@ -613,6 +679,7 @@ class TroLyAiActivity : Activity() {
 
         const val TEP_CAI_DAT = "ghichu_ai"
         const val TRAN_LUOT = 30
+        const val MA_CHON_ANH = 1
         const val XUONG = "\n"
     }
 }

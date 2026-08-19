@@ -166,4 +166,28 @@ class GeminiTest {
         assertEquals("model", noiDung.getJSONObject(1).getString("role"))
         assertEquals("câu mới", noiDung.getJSONObject(2).getJSONArray("parts").getJSONObject(0).getString("text"))
     }
+
+    @Test
+    fun `anh gui kem nam TRUOC chu trong cung mot luot`() {
+        val than = Gemini.dungThan(
+            "Trong ảnh này có gì?", null, emptyList(), false,
+            Anh("image/jpeg", "AAECAw=="),
+        )
+        val phan = than.getJSONArray("contents").getJSONObject(0).getJSONArray("parts")
+        assertEquals(2, phan.length())
+
+        // Anh truoc: Google khuyen vay, va do cung la thu tu tu nhien.
+        val duLieu = phan.getJSONObject(0).getJSONObject("inline_data")
+        assertEquals("image/jpeg", duLieu.getString("mime_type"))
+        assertEquals("AAECAw==", duLieu.getString("data"))
+        assertEquals("Trong ảnh này có gì?", phan.getJSONObject(1).getString("text"))
+    }
+
+    @Test
+    fun `khong kem anh thi than khong co inline_data`() {
+        val than = Gemini.dungThan("Chào", null, emptyList(), false, null)
+        val phan = than.getJSONArray("contents").getJSONObject(0).getJSONArray("parts")
+        assertEquals(1, phan.length())
+        assertTrue(phan.getJSONObject(0).has("text"))
+    }
 }
