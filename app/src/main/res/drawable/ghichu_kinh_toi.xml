@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Nen "kinh" ban TOI.
+
+  NOI TRUOC CHO KHOI VO MONG: widget cua ung dung KHONG lam mo duoc hinh nen phia
+  sau — Android khong mo API do, chi launcher moi lam duoc. Cai dung o day la
+  cach lam kinh gia, va no thuyet phuc nho ba thu cong lai:
+
+    1. nen ban trong, chuyen sac cheo (goc tren sang hon goc duoi) — giong anh
+       sang hat len mot tam kinh;
+    2. vien sang 1dp — canh kinh bat sang;
+    3. bo goc lon 28dp — kinh mai canh.
+
+  Do duc chon 0x99 (60%): trong hon nua thi chu lan vao hinh nen khong doc duoc,
+  duc hon nua thi khong con ra kinh.
+
+  Mot so launcher (trong do co MIUI) TU lam mo phia sau widget. Gap launcher do
+  thi hieu ung thanh kinh that, khong phai lam gi them.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="315"
+                android:startColor="#B3202024"
+                android:endColor="#8C0E0E10" />
+            <corners android:radius="28dp" />
+            <stroke android:width="1dp" android:color="#38FFFFFF" />
+        </shape>
+    </item>
+    <!-- Lop sang mong o mep tren, cho canh kinh bat sang ro hon mot chut. -->
+    <item android:bottom="1dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="270"
+                android:startColor="#26FFFFFF"
+                android:endColor="#00FFFFFF" />
+            <corners android:radius="28dp" />
+        </shape>
+    </item>
+</layer-list>

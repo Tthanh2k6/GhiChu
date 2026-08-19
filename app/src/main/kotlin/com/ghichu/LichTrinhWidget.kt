@@ -21,10 +21,9 @@ import java.time.ZoneId
  *
  * BON DIEU PHAI BIET — deu la bai hoc da tra gia o du an cu:
  *
- * 1. **Ma tiem KHONG dung duoc `R` cua chinh no.** Ma tai nguyen do aapt2 sinh o
- *    module `ext` khong khop bang tai nguyen cua app dich. Nen bo cuc nam trong
- *    cay apktool (`src/res/layout/ghichu_widget_*.xml`) va o day tra ID luc chay
- *    bang [id] / [boCuc] — dung `Resources.getIdentifier`.
+ * 1. **Nen kinh dung chung voi [GhiChuWidget]** — xem giai thich ve hai chu
+ *    "kinh" o ben do. Tom tat: widget khong lam mo duoc hinh nen phia sau, day
+ *    la nen ban trong + vien sang, va no van rat ra kinh.
  *
  * 2. **KHONG dung the `<View>` tron trong bo cuc widget.** `RemoteViews` chi nhan
  *    LinearLayout / FrameLayout / TextView / ImageView… Sai la widget bao
@@ -44,63 +43,61 @@ class LichTrinhWidget : AppWidgetProvider() {
     }
 
     private fun veMot(context: Context, quanLy: AppWidgetManager, widgetId: Int) {
-        val goc = boCuc(context, "ghichu_widget_lich")
-        if (goc == 0) return
-        val o = RemoteViews(context.packageName, goc)
+        val o = RemoteViews(context.packageName, R.layout.ghichu_widget_lich)
         val mau = BangMau.cua(context)
         val zone = ZoneId.systemDefault()
 
         // --- Nen + mau chu theo giao dien sang/toi ---
         o.setInt(
-            id(context, "ghichu_widget_goc"), "setBackgroundResource",
-            drawable(context, if (mau.toi) "ghichu_widget_nen_toi" else "ghichu_widget_nen_sang"),
+            R.id.ghichu_widget_goc, "setBackgroundResource",
+            if (mau.toi) R.drawable.ghichu_kinh_toi else R.drawable.ghichu_kinh_sang,
         )
-        o.setTextColor(id(context, "ghichu_widget_dau"), mau.chuChinh)
-        o.setTextColor(id(context, "ghichu_widget_ngay_dau"), mau.nhan)
-        o.setTextColor(id(context, "ghichu_widget_gio_dau"), mau.chuPhu)
-        o.setInt(id(context, "ghichu_widget_vach"), "setBackgroundColor", mau.vienHang)
+        o.setTextColor(R.id.ghichu_widget_dau, mau.chuChinh)
+        o.setTextColor(R.id.ghichu_widget_ngay_dau, mau.nhan)
+        o.setTextColor(R.id.ghichu_widget_gio_dau, mau.chuPhu)
+        o.setInt(R.id.ghichu_widget_vach, "setBackgroundColor", mau.vienHang)
 
         // Cham vao dau cung mo app. Khong mo thang mot su kien duoc: hop sua su
         // kien la hop thoai nam trong Activity, khong co duong vao rieng.
-        moApp(context)?.let { o.setOnClickPendingIntent(id(context, "ghichu_widget_goc"), it) }
+        moApp(context)?.let { o.setOnClickPendingIntent(R.id.ghichu_widget_goc, it) }
 
         val sapToi = docSapToi(context, zone)
 
         // --- Dong tren cung: viec gan nhat ---
         if (sapToi.isEmpty()) {
-            o.setTextViewText(id(context, "ghichu_widget_ngay_dau"), "")
-            o.setTextViewText(id(context, "ghichu_widget_ten_dau"), "Không có sự kiện sắp tới")
-            o.setTextColor(id(context, "ghichu_widget_ten_dau"), mau.chuPhu)
-            o.setViewVisibility(id(context, "ghichu_widget_gio_dau"), View.GONE)
+            o.setTextViewText(R.id.ghichu_widget_ngay_dau, "")
+            o.setTextViewText(R.id.ghichu_widget_ten_dau, "Không có sự kiện sắp tới")
+            o.setTextColor(R.id.ghichu_widget_ten_dau, mau.chuPhu)
+            o.setViewVisibility(R.id.ghichu_widget_gio_dau, View.GONE)
         } else {
             val dau = sapToi.first()
-            o.setTextViewText(id(context, "ghichu_widget_ngay_dau"), nhanNgay(dau.batDau, zone))
-            o.setTextViewText(id(context, "ghichu_widget_ten_dau"), tenCua(dau))
+            o.setTextViewText(R.id.ghichu_widget_ngay_dau, nhanNgay(dau.batDau, zone))
+            o.setTextViewText(R.id.ghichu_widget_ten_dau, tenCua(dau))
             o.setTextColor(
-                id(context, "ghichu_widget_ten_dau"),
+                R.id.ghichu_widget_ten_dau,
                 if (dangDienRa(dau)) mau.nhan else mau.chuChinh,
             )
-            o.setViewVisibility(id(context, "ghichu_widget_gio_dau"), View.VISIBLE)
-            o.setTextViewText(id(context, "ghichu_widget_gio_dau"), nhanGio(dau, zone))
+            o.setViewVisibility(R.id.ghichu_widget_gio_dau, View.VISIBLE)
+            o.setTextViewText(R.id.ghichu_widget_gio_dau, nhanGio(dau, zone))
         }
 
         // --- Cac dong con lai ---
-        val khung = id(context, "ghichu_widget_khung")
+        val khung = R.id.ghichu_widget_khung
         o.removeAllViews(khung)
-        val hangBoCuc = boCuc(context, "ghichu_widget_muc")
+        val hangBoCuc = R.layout.ghichu_widget_muc
 
         if (hangBoCuc != 0 && sapToi.size > 1) {
             for (lan in sapToi.drop(1).take(TOI_DA_DONG)) {
                 val hang = RemoteViews(context.packageName, hangBoCuc)
-                hang.setTextViewText(id(context, "ghichu_widget_ngay"), nhanNgay(lan.batDau, zone))
-                hang.setTextViewText(id(context, "ghichu_widget_ten"), tenCua(lan))
+                hang.setTextViewText(R.id.ghichu_widget_ngay, nhanNgay(lan.batDau, zone))
+                hang.setTextViewText(R.id.ghichu_widget_ten, tenCua(lan))
                 hang.setTextColor(
-                    id(context, "ghichu_widget_ten"),
+                    R.id.ghichu_widget_ten,
                     if (dangDienRa(lan)) mau.nhan else mau.chuChinh,
                 )
-                hang.setTextColor(id(context, "ghichu_widget_ngay"), mau.chuPhu)
-                hang.setTextColor(id(context, "ghichu_widget_gio"), mau.chuPhu)
-                hang.setTextViewText(id(context, "ghichu_widget_gio"), nhanGio(lan, zone))
+                hang.setTextColor(R.id.ghichu_widget_ngay, mau.chuPhu)
+                hang.setTextColor(R.id.ghichu_widget_gio, mau.chuPhu)
+                hang.setTextViewText(R.id.ghichu_widget_gio, nhanGio(lan, zone))
                 o.addView(khung, hang)
             }
         }
@@ -120,7 +117,7 @@ class LichTrinhWidget : AppWidgetProvider() {
         val bayGio = System.currentTimeMillis()
         val den = bayGio + SO_NGAY_NHIN * 24 * 3_600_000L
 
-        val kho = KhoDuLieu(context)
+        val kho = Ung.cua(context).kho
         return try {
             kho.trongKhoang(bayGio, den)
                 .flatMap { LichLapLai.moRong(it, bayGio, den, zone) }
@@ -130,7 +127,6 @@ class LichTrinhWidget : AppWidgetProvider() {
         } catch (_: Exception) {
             emptyList()
         } finally {
-            kho.close()
         }
     }
 
@@ -165,13 +161,7 @@ class LichTrinhWidget : AppWidgetProvider() {
 
     // ---- Tra ma tai nguyen luc chay ----
 
-    private fun id(context: Context, ten: String): Int = tra(context, ten, "id")
-    /** 0 = khong tim thay bo cuc — cay res chua duoc dung lai. */
-    private fun boCuc(context: Context, ten: String): Int = tra(context, ten, "layout")
-    private fun drawable(context: Context, ten: String): Int = tra(context, ten, "drawable")
 
-    private fun tra(context: Context, ten: String, loai: String): Int =
-        context.resources.getIdentifier(ten, loai, context.packageName)
 
     companion object {
         /** Them nhieu hon chieu cao widget thi phan duoi bi cat, khong tran. */

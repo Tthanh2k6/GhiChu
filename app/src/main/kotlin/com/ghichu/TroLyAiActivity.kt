@@ -84,7 +84,7 @@ class TroLyAiActivity : Activity() {
         setTheme(BangMau.cua(this).themeManHinh)
         title = "Trợ lý AI"
         Gemini.khoiTao(this)
-        kho = KhoDuLieu(this)
+        kho = Ung.cua(this).kho
 
         setContentView(dungGiaoDien())
         napDoanChat()
@@ -94,7 +94,6 @@ class TroLyAiActivity : Activity() {
 
     override fun onDestroy() {
         nen.shutdown()
-        kho.close()
         super.onDestroy()
     }
 

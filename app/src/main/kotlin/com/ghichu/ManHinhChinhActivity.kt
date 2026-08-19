@@ -52,6 +52,9 @@ class ManHinhChinhActivity : Activity() {
      */
     private val dangChon = LinkedHashSet<Long>()
 
+    /** Cach nhau it nhat bay nhieu lau moi dong bo ngam mot luot. */
+    private val CACH_DONG_BO_MS = 2 * 60 * 1000L
+
     private var duLieu: List<GhiChu> = emptyList()
 
     private lateinit var goc: LinearLayout
@@ -127,6 +130,28 @@ class ManHinhChinhActivity : Activity() {
             return
         }
         nap()
+        dongBoNgam()
+    }
+
+    /**
+     * Keo/day mot luot o luong nen moi lan quay lai man hinh chinh.
+     *
+     * Co gian [CACH_DONG_BO_MS] giua hai luot: `onResume` chay ca khi tat man
+     * hinh bat lai hay dong mot hop thoai — khong gian thi mot buoi chieu la vai
+     * tram luot goi mang.
+     *
+     * Loi mang thi im lang: day la luot NGAM, nguoi dung khong yeu cau. Ai muon
+     * biet ket qua thi vao Cai dat > Dong bo, o do bao ro loi cuoi cung.
+     */
+    private fun dongBoNgam() {
+        if (!DongBo.daDangNhap || DongBo.dangChay) return
+        if (System.currentTimeMillis() - DongBo.lanCuoi < CACH_DONG_BO_MS) return
+
+        val kho = Ung.cua(this).kho
+        Thread {
+            val doi = DongBo.motLuot(this, kho)
+            if (doi) runOnUiThread { if (!isFinishing && !isDestroyed) nap() }
+        }.start()
     }
 
     // ------------------------------------------------------------ thanh tren

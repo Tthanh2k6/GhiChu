@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Khai báo widget Ghi chú.
+
+  updatePeriodMillis = 0: widget này không tự trôi theo thời gian như widget Lịch
+  trình — nội dung chỉ đổi khi ghi chú đổi, mà lúc đó code tự báo cập nhật ngay.
+  Đặt chu kỳ ở đây chỉ tốn pin cho một lần vẽ lại y hệt lần trước.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="180dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="3"
+    android:targetCellHeight="2"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/ghichu_widget_ghichu"
+    android:previewLayout="@layout/ghichu_widget_ghichu"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen" />

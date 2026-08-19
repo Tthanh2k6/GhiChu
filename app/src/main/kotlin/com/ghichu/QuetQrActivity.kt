@@ -80,7 +80,7 @@ class QuetQrActivity : Activity() {
         super.onCreate(savedInstanceState)
         setTheme(BangMau.cua(this).themeManHinh)
         title = "Quét QR"
-        kho = KhoDuLieu(this)
+        kho = Ung.cua(this).kho
         setContentView(dungGiaoDien())
 
         if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
@@ -114,7 +114,6 @@ class QuetQrActivity : Activity() {
     }
 
     override fun onDestroy() {
-        kho.close()
         super.onDestroy()
     }
 

@@ -47,6 +47,7 @@ class KhoDuLieu(context: Context) : SQLiteOpenHelper(
      */
     fun baoDoi() {
         LichTrinhWidget.capNhat(ung)
+        GhiChuWidget.capNhat(ung)
         NhacNho.datLai(ung)
     }
 

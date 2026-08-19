@@ -34,7 +34,7 @@ import java.time.ZoneId
  */
 class ManLichTrinh(private val context: Context) {
 
-    private val db = KhoDuLieu(context)
+    private val db = Ung.cua(context).kho
     private val zone: ZoneId = ZoneId.systemDefault()
     private val main = Handler(Looper.getMainLooper())
     private val nen = java.util.concurrent.Executors.newSingleThreadExecutor()
@@ -256,9 +256,9 @@ class ManLichTrinh(private val context: Context) {
     /**
      * Dong bo lang le moi lan mo man nay, toi da 2 phut mot lan.
      *
-     * Dung CSDL RIENG o luong nen: [dong] co the dong `db` bat cu luc nao khi
-     * nguoi dung roi man hinh, ma mot luot dong bo thi keo dai vai giay — dung
-     * chung mot the la co ngay "database is closed".
+     * Dung thang the CSDL chung cua app: no song suot doi tien trinh, khong ai
+     * dong no — nen mot luot dong bo keo dai vai giay van an toan du nguoi dung
+     * da roi man hinh.
      */
     fun dongBoNgam() {
         DongBo.khoiTao(context)
@@ -266,12 +266,7 @@ class ManLichTrinh(private val context: Context) {
         if (System.currentTimeMillis() - DongBo.lanCuoi < CACH_NHAU_MS) return
 
         nen.execute {
-            val khoRieng = KhoDuLieu(context)
-            val doi = try {
-                DongBo.motLuot(context, khoRieng)
-            } finally {
-                khoRieng.close()
-            }
+            val doi = DongBo.motLuot(context, db)
             if (doi) main.post { nap() }
         }
     }
@@ -279,7 +274,6 @@ class ManLichTrinh(private val context: Context) {
     fun dong() {
         main.removeCallbacksAndMessages(null)
         nen.shutdown()
-        db.close()
     }
 
     private companion object {

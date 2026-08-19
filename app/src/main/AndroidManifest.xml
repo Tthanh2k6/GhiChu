@@ -78,6 +78,21 @@
         </receiver>
 
         <!--
+          Widget Ghi chu (nen kinh). `exported="true"` la BAT BUOC voi moi widget:
+          he thong goi broadcast tu tien trinh khac vao day.
+        -->
+        <receiver
+            android:name="com.ghichu.GhiChuWidget"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/ghichu_widget_ghichu_info" />
+        </receiver>
+
+        <!--
           Widget Lich trinh. `exported="true"` la BAT BUOC: he thong widget goi
           broadcast tu tien trinh khac vao day, dat false la widget khong bao gio
           duoc ve.

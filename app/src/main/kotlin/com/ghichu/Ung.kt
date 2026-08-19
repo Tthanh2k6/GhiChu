@@ -21,7 +21,10 @@ class Ung : Application() {
         Gemini.khoiTao(this)
         // Hen lai bao thuc nhac nho ngay khi app song lai. Can cho lan dau sau
         // khi cai: chua sua gi thi khong co duong nao khac goi toi [NhacNho].
-        NhacNho.datLai(this)
+        //
+        // O LUONG KHAC: viec nay mo CSDL va quet ca su kien lan ghi chu — lam o
+        // luong chinh la keo dai thoi gian mo app cho mot viec khong ai dang doi.
+        Thread { NhacNho.datLai(this) }.start()
     }
 
     companion object {

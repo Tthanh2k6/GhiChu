@@ -54,7 +54,7 @@ class DongBoActivity : Activity() {
         setTheme(BangMau.cua(this).themeManHinh)
         title = "Đồng bộ"
         DongBo.khoiTao(this)
-        kho = KhoDuLieu(this)
+        kho = Ung.cua(this).kho
 
         val cuon = ScrollView(this).apply {
             setBackgroundColor(mau.nen)
@@ -71,7 +71,6 @@ class DongBoActivity : Activity() {
 
     override fun onDestroy() {
         nen.shutdown()
-        kho.close()
         super.onDestroy()
     }
 
