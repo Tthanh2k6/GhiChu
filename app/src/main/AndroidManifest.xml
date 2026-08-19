@@ -57,6 +57,10 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity
+            android:name="com.ghichu.BanDoActivity"
+            android:exported="false" />
+
+        <activity
             android:name="com.ghichu.LichTrinhActivity"
             android:exported="false" />
 

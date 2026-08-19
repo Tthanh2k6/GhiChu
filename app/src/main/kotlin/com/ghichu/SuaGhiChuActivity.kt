@@ -194,6 +194,7 @@ class SuaGhiChuActivity : Activity() {
         hang.addView(nutChu("☑", "Ô tick") { doiOTick() })
         hang.addView(nutChu("🖼", "Chèn ảnh") { chonAnh() })
         hang.addView(nutChu("🎙", "Ghi âm") { ghiAm() })
+        hang.addView(nutChu("🧠", "Bản đồ tư duy") { chenBanDo() })
         hang.addView(nutChu("—", "Đường kẻ") { chenDuongKe() })
 
         return HorizontalScrollView(this).apply {
@@ -298,6 +299,14 @@ class SuaGhiChuActivity : Activity() {
         val dauDong = bo.getLineStart(hang)
         val chu = oThan.text
 
+        // Dong ban do tu duy: cham vao la mo man sua.
+        val cuoiDongBanDo = bo.getLineEnd(hang)
+        (chu as? Spanned)?.getSpans(dauDong, cuoiDongBanDo, SoanThao.TheBanDo::class.java)
+            ?.firstOrNull()?.let {
+                moBanDo(it)
+                return true
+            }
+
         // Dong ghi am: cham vao dau cung la phat/dung, khong phai dat con tro.
         val cuoiDong = bo.getLineEnd(hang)
         (chu as? Spanned)?.getSpans(dauDong, cuoiDong, SoanThao.TheGhiAm::class.java)
@@ -340,7 +349,15 @@ class SuaGhiChuActivity : Activity() {
 
     override fun onActivityResult(ma: Int, ketQua: Int, du: Intent?) {
         super.onActivityResult(ma, ketQua, du)
-        if (ma != MA_CHON_ANH || ketQua != RESULT_OK) return
+        if (ketQua != RESULT_OK) return
+        if (ma == MA_BAN_DO) {
+            capNhatBanDo(
+                du?.getStringExtra(BanDoActivity.KHOA_JSON).orEmpty(),
+                du?.getIntExtra(BanDoActivity.KHOA_SO_NUT, 1) ?: 1,
+            )
+            return
+        }
+        if (ma != MA_CHON_ANH) return
         val nguon = du?.data ?: return
 
         val ten = KhoAnh.them(this, nguon)
@@ -508,6 +525,67 @@ class SuaGhiChuActivity : Activity() {
         if (ma != MA_QUYEN_GHI_AM) return
         if (ketQua.firstOrNull() == android.content.pm.PackageManager.PERMISSION_GRANTED) ghiAm()
         else Toast.makeText(this, "Cần quyền micro để ghi âm", Toast.LENGTH_SHORT).show()
+    }
+
+    // ------------------------------------------------------------ ban do tu duy
+
+    /**
+     * Doan chu cua ban do dang mo, de con thay the khi tro ve.
+     *
+     * Giu VI TRI chu khong giu doi tuong span: nguoi dung co the go them chu o
+     * tren trong luc man ban do dang mo — khong the, nhung `EditText` khong bao
+     * dam gi, va vi tri thi tra lai bang `getSpanStart` luc quay ve moi la dung.
+     */
+    private var theBanDoDangMo: SoanThao.TheBanDo? = null
+
+    private fun chenBanDo() {
+        val chu = oThan.text
+        val vt = oThan.selectionEnd.coerceIn(0, chu.length)
+        val truoc = if (vt > 0 && chu[vt - 1] != '\n') "\n" else ""
+
+        val cay = Nut(tieuDe().ifBlank { "Bản đồ tư duy" })
+        val json = XepBanDo.ghiJson(cay)
+        val nhan = SoanThao.nhanBanDo(1)
+
+        val them = SpannableStringBuilder(truoc + nhan + "\n")
+        val the = SoanThao.TheBanDo(json)
+        them.setSpan(
+            the, truoc.length, truoc.length + nhan.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
+        )
+        chu.insert(vt, them)
+        moBanDo(the)
+    }
+
+    private fun moBanDo(the: SoanThao.TheBanDo) {
+        theBanDoDangMo = the
+        startActivityForResult(
+            Intent(this, BanDoActivity::class.java).putExtra(BanDoActivity.KHOA_JSON, the.json),
+            MA_BAN_DO,
+        )
+    }
+
+    /**
+     * Thay doan chu cua ban do vua sua bang nhan moi va span moi.
+     *
+     * Phai thay CA doan chu chu khong chi doi span: so nhanh doi thi nhan cung
+     * doi do dai, giu nguyen chu cu la nguoi dung thay "3 nhánh" trong khi ban
+     * do co bay.
+     */
+    private fun capNhatBanDo(json: String, soNut: Int) {
+        val cu = theBanDoDangMo ?: return
+        theBanDoDangMo = null
+
+        val chu = oThan.text
+        val dau = chu.getSpanStart(cu)
+        val cuoi = chu.getSpanEnd(cu)
+        if (dau < 0 || cuoi < dau) return
+
+        val nhan = SoanThao.nhanBanDo(soNut)
+        chu.removeSpan(cu)
+        chu.replace(dau, cuoi, nhan)
+        chu.setSpan(
+            SoanThao.TheBanDo(json), dau, dau + nhan.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
+        )
     }
 
     // ------------------------------------------------------------ hanh dong
@@ -856,5 +934,6 @@ class SuaGhiChuActivity : Activity() {
         const val KHOA_THU_MUC = "thu_muc"
         private const val MA_CHON_ANH = 1
         private const val MA_QUYEN_GHI_AM = 2
+        private const val MA_BAN_DO = 3
     }
 }

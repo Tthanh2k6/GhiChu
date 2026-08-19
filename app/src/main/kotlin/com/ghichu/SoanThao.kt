@@ -38,6 +38,9 @@ object SoanThao {
     /** Nhan cua mot dong ghi am trong o soan thao. */
     fun nhanGhiAm(giay: Int): String = "🎙 Ghi âm · " + KhoGhiAm.doDai(giay)
 
+    /** Nhan cua mot dong ban do tu duy trong o soan thao. */
+    fun nhanBanDo(soNut: Int): String = "🧠 Bản đồ tư duy · " + soNut + " nhánh"
+
     private const val TI_LE_TO = 1.45f
     private const val TI_LE_VUA = 1.2f
 
@@ -54,6 +57,15 @@ object SoanThao {
                 Khoi.O_DA_TICK -> ra.append(O_TICK)
                 Khoi.DUONG_KE -> {
                     ra.append(DUONG_KE)
+                    continue
+                }
+                Khoi.BAN_DO -> {
+                    val dau = ra.length
+                    val cay = XepBanDo.docJson(k.duLieu)
+                    ra.append(nhanBanDo(cay.demNut()))
+                    ra.setSpan(
+                        TheBanDo(k.duLieu), dau, ra.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
+                    )
                     continue
                 }
                 Khoi.GHI_AM -> {
@@ -109,6 +121,15 @@ object SoanThao {
     /** Danh dau mot dong la ban ghi am; giu ten tep va do dai. */
     class TheGhiAm(val ten: String, val giay: Int)
 
+    /**
+     * Danh dau mot dong la ban do tu duy; giu CA CAY duoi dang JSON.
+     *
+     * Ca cay nam trong span chu khong nam trong chu hien ra: nguoi dung chi thay
+     * mot dong "🧠 Bản đồ tư duy · 7 nhánh", con du lieu that thi khong the go
+     * nham vao.
+     */
+    class TheBanDo(val json: String)
+
     // ------------------------------------------------------------ chu -> markup
 
     fun ghi(chu: CharSequence): String {
@@ -134,6 +155,9 @@ object SoanThao {
         // âm · 0:23" thi khong bong dung thanh ban ghi.
         sp?.getSpans(dauDong, cuoiDong, TheGhiAm::class.java)?.firstOrNull()?.let {
             return Khoi(Khoi.GHI_AM, tep = it.ten, giay = it.giay)
+        }
+        sp?.getSpans(dauDong, cuoiDong, TheBanDo::class.java)?.firstOrNull()?.let {
+            return Khoi(Khoi.BAN_DO, duLieu = it.json)
         }
 
         val loai = when {

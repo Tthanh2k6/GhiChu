@@ -17,6 +17,8 @@ class Khoi(
     val tep: String = "",
     /** Chi co nghia voi [GHI_AM]: do dai ban ghi, tinh bang giay. */
     val giay: Int = 0,
+    /** Chi co nghia voi [BAN_DO]: ca cay duoi dang JSON. */
+    val duLieu: String = "",
 ) {
 
     /** Chu tron cua ca dong, khong kem dinh dang. */
@@ -28,6 +30,7 @@ class Khoi(
         const val O_DA_TICK = 2
         const val DUONG_KE = 3
         const val GHI_AM = 4
+        const val BAN_DO = 5
     }
 }
 
@@ -57,6 +60,10 @@ object KhoiNoiDung {
                 DinhDang.doc(d.substring(m.range.last + 1)),
             )
             "hr" -> Khoi(Khoi.DUONG_KE)
+            "mind" -> Khoi(
+                Khoi.BAN_DO,
+                duLieu = boThoatJson(boTheDong(d.substring(m!!.range.last + 1), "mind")),
+            )
             "audio" -> Khoi(
                 Khoi.GHI_AM,
                 tep = thuocTinh(m!!.groupValues[2], "src").orEmpty(),
@@ -76,6 +83,18 @@ object KhoiNoiDung {
         THUOC_TINH.findAll(phan).firstOrNull { it.groupValues[1].equals(ten, true) }
             ?.groupValues?.get(2)
 
+    /**
+     * Thoat JSON cua ban do de nhet duoc vao giua the.
+     *
+     * Chi doi ba ky tu `& < >`. JSON von da thoat dau nhay va dau xuong dong cho
+     * minh roi, nen ba cai nay la du de bo doc the khong bi lac.
+     */
+    private fun thoatJson(chu: String): String =
+        chu.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    private fun boThoatJson(chu: String): String =
+        chu.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
+
     private fun boTheDong(chu: String, ten: String): String {
         val dong = "</$ten>"
         val i = chu.lastIndexOf(dong)
@@ -89,6 +108,7 @@ object KhoiNoiDung {
             Khoi.O_DA_TICK -> "<input type=\"checkbox\" checked=\"true\" indent=\"1\" />$trong"
             Khoi.DUONG_KE -> "<hr />"
             Khoi.GHI_AM -> "<audio src=\"" + k.tep + "\" giay=\"" + k.giay + "\" />"
+            Khoi.BAN_DO -> "<mind>" + thoatJson(k.duLieu) + "</mind>"
             else -> "<text indent=\"1\">$trong</text>"
         }
     }
