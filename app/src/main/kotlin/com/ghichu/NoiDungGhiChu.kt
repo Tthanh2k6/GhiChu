@@ -77,52 +77,6 @@ object NoiDungGhiChu {
             "<text indent=\"1\">${thoat(chu)}</text>"
         }
 
-    // ---- Cau noi giua markup va o soan thao ----
-
-    /**
-     * Ky tu o tick trong ban SOAN THAO. Nguoi dung nhin thay va go duoc thang.
-     *
-     * CO Y dung ky tu that chu khong phai `- [ ]` kieu Markdown: ban da chot bo
-     * Markdown — "go chu thay chu". O vuong hien ra dung la o vuong.
-     */
-    const val O_TRONG = "☐ "
-    const val O_TICK = "☑ "
-
-    /**
-     * Markup -> chu de dua vao o soan thao.
-     *
-     * KHAC [chuTron] o mot diem quan trong: ham nay GIU o tick lai duoi dang ky
-     * tu [O_TRONG]/[O_TICK], con [chuTron] vut chung di. Vi vay [chuTron] chi
-     * dung de TIM KIEM, con mo ghi chu ra sua thi phai qua day — dung nham la
-     * nguoi dung mo mot ghi chu co danh sach viec, bam luu, va moi o tick bien
-     * thanh dong chu thuong.
-     */
-    fun deSua(markup: String): String =
-        markup.lineSequence().joinToString("\n") { dong ->
-            val d = dong.trim()
-            val chu = boThoat(THE.replace(d, "")).trim()
-            when {
-                !d.startsWith("<input") -> chu
-                O_TICK_TRONG_THE.containsMatchIn(d) -> O_TICK + chu
-                else -> O_TRONG + chu
-            }
-        }.replace(Regex("\n{3,}"), "\n\n")
-
-    /** Chu tu o soan thao -> markup. Nguoc cua [deSua]. */
-    fun tuSua(chu: String): String =
-        chu.lines().joinToString("\n") { dong ->
-            when {
-                dong.startsWith(O_TICK) ->
-                    "<input type=\"checkbox\" checked=\"true\" indent=\"1\" />" +
-                        thoat(dong.removePrefix(O_TICK))
-                dong.startsWith(O_TRONG) ->
-                    "<input type=\"checkbox\" indent=\"1\" />" + thoat(dong.removePrefix(O_TRONG))
-                else -> "<text indent=\"1\">" + thoat(dong) + "</text>"
-            }
-        }
-
-    private val O_TICK_TRONG_THE = Regex("checked\\s*=\\s*\"true\"")
-
     /** Bo `**dam**`, `*nghieng*`, `` `ma` ``, `~~gach~~` — giu lai chu ben trong. */
     private fun boDanhDauTrongDong(chu: String): String = chu
         .replace(Regex("\\*\\*(.+?)\\*\\*"), "$1")

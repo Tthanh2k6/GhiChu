@@ -91,9 +91,15 @@ class ManHinhChinhActivity : Activity() {
             addView(dungNutThem())
         })
 
-        // Don rac qua han moi lan mo app — khong co cho nay thi thung rac phinh
-        // mai, ma nguoi dung khong bao gio nho vao don.
-        kho.donRacQuaHan()
+        // Don dep dinh ky, chay o luong khac: ca hai viec deu quet toan bo CSDL,
+        // lam o luong chinh la mo app thay khung mot cai khi co nhieu ghi chu.
+        Thread {
+            // Thung rac khong tu don thi phinh mai, ma nguoi dung khong bao gio
+            // nho vao don.
+            kho.donRacQuaHan()
+            // Xoa ghi chu co anh xong ma khong don thi tep anh nam lai mai.
+            KhoAnh.donTepThua(this, Ung.cua(this).kho)
+        }.start()
     }
 
     override fun onResume() {

@@ -5,12 +5,17 @@ import android.app.AlertDialog
 import android.content.Intent
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
+import android.text.Spannable
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.ImageSpan
 import android.util.TypedValue
 import android.view.Gravity
+import android.view.MotionEvent
 import android.view.View
-import android.view.ViewGroup
 import android.view.WindowInsets
 import android.widget.EditText
+import android.widget.HorizontalScrollView
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -20,12 +25,7 @@ import android.widget.Toast
 /**
  * Soan mot ghi chu.
  *
- * Chang nay soan **chu tron co o tick**; chu dam/nghieng, anh va duong ke se
- * them o chang sau. Nhung o tick thi phai co NGAY tu bay gio: ghi chu keo tu may
- * chu ve co the dang la mot danh sach viec, mo ra sua ma o tick bi nuot thanh
- * dong chu thuong la mat du lieu that. Vi vay o soan thao doc/ghi qua
- * [NoiDungGhiChu.deSua] / [NoiDungGhiChu.tuSua] chu KHONG qua
- * [NoiDungGhiChu.chuTron].
+ * Ca bai nam trong **MOT `EditText`** — ly do va cach lam o [SoanThao].
  *
  * **Tu luu, khong co nut Luu.** Luu o `onPause` — nguoi dung go xong roi bam
  * back hoac chuyen app, khong ai di tim nut luu. Ghi chu rong thi khong tao hang
@@ -68,14 +68,12 @@ class SuaGhiChuActivity : Activity() {
             nhacLuc = g.nhacLuc
         }
 
-        nen = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-        }
+        nen = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         nen.addView(dungThanhTren())
         nen.addView(dungThan(g), LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f,
         ))
-        nen.addView(dungThanhDuoi())
+        nen.addView(dungThanhCongCu())
 
         nen.setOnApplyWindowInsetsListener { view, insets ->
             val thanh = insets.getInsets(WindowInsets.Type.systemBars())
@@ -103,10 +101,7 @@ class SuaGhiChuActivity : Activity() {
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(6), dp(6), dp(6), dp(2))
         }
-        thanh.addView(nutAnh(R.drawable.ic_quay_lai, "Quay lại") {
-            // Luu o onPause; day chi dong man hinh.
-            finish()
-        })
+        thanh.addView(nutAnh(R.drawable.ic_quay_lai, "Quay lại") { finish() })
         thanh.addView(View(this), LinearLayout.LayoutParams(0, 1, 1f))
         thanh.addView(nutAnh(R.drawable.ic_ghim, "Ghim") {
             ghim = !ghim
@@ -153,11 +148,16 @@ class SuaGhiChuActivity : Activity() {
             gravity = Gravity.TOP
             setLineSpacing(dp(4).toFloat(), 1f)
             setPadding(0, dp(12), 0, 0)
-            setText(NoiDungGhiChu.deSua(g?.noiDung.orEmpty()))
+            setText(SoanThao.doc(g?.noiDung.orEmpty()), TextView.BufferType.SPANNABLE)
+            setOnTouchListener { _, su -> chamVaoThan(su) }
         }
         cot.addView(oThan, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT,
         ))
+
+        // Phai doi do rong that cua o soan thao roi moi ve anh — luc dung view no
+        // van con bang 0, ve luc do la anh be ti mot chuong.
+        oThan.post { veAnh() }
 
         // Ghi chu moi thi mo ban phim luon — nguoi dung bam "+" la de viet, khong
         // phai de ngam trang trang roi bam them mot cai nua.
@@ -173,60 +173,222 @@ class SuaGhiChuActivity : Activity() {
         return cuon
     }
 
-    /** Thanh cong cu soan thao. Chang nay moi co o tick va mau giay. */
-    private fun dungThanhDuoi(): View {
-        val thanh = LinearLayout(this).apply {
+    /**
+     * Thanh cong cu soan thao.
+     *
+     * Cuon ngang duoc: chin nut khong vua be ngang may nho, ma bo bot nut nao
+     * cung la mot chuc nang bien mat.
+     */
+    private fun dungThanhCongCu(): View {
+        val hang = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(8), dp(4), dp(8), dp(4))
+            setPadding(dp(12), dp(4), dp(12), dp(4))
         }
-        thanh.addView(nutChu("☑", "Ô tick") { doiOTick() })
-        thanh.addView(nutChu("●", "Màu giấy") { hienChonMau() })
-        thanh.addView(View(this), LinearLayout.LayoutParams(0, 1, 1f))
-        thanh.addView(nutChu("⋯", "Chia sẻ") { chiaSe() })
-        return thanh
+        hang.addView(nutKieu("B", "Đậm", DinhDang.DAM, dam = true))
+        hang.addView(nutKieu("I", "Nghiêng", DinhDang.NGHIENG, nghieng = true))
+        hang.addView(nutKieu("U", "Gạch chân", DinhDang.GACH_CHAN))
+        hang.addView(nutKieu("S", "Gạch ngang", DinhDang.GACH_NGANG))
+        hang.addView(nutKieu("A", "Cỡ chữ lớn", DinhDang.CHU_TO))
+        hang.addView(nutChu("🎨", "Màu chữ") { hienMauChu() })
+        hang.addView(nutChu("☑", "Ô tick") { doiOTick() })
+        hang.addView(nutChu("🖼", "Chèn ảnh") { chonAnh() })
+        hang.addView(nutChu("—", "Đường kẻ") { chenDuongKe() })
+
+        return HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled = false
+            addView(hang)
+        }
     }
 
-    // ------------------------------------------------------------ hanh dong
+    // ------------------------------------------------------------ dinh dang
 
     /**
-     * Bat/tat o tick tren dong dang dat con tro.
+     * Doan dang duoc ap dinh dang.
      *
-     * Lam viec tren CHUOI chu khong tren mot cau truc khoi rieng: o soan thao la
-     * mot `EditText` thuong, o tick chi la ky tu dau dong. Doi lai duoc mot thu
-     * quan trong — nguoi dung xoa lui qua o tick la no bien mat nhu moi ky tu
-     * khac, khong con trang thai an nao ket lai.
+     * Chua boi den gi thi lay TU dang dat con tro. Khong lam vay thi bam "B" luc
+     * con tro dung giua cau khong xay ra gi ca, ma nguoi dung khong hieu tai sao
+     * nut khong an.
      */
-    private fun doiOTick() {
-        val chu = oThan.text.toString()
-        val viTri = oThan.selectionStart.coerceIn(0, chu.length)
-        val dau = chu.lastIndexOf('\n', (viTri - 1).coerceAtLeast(0)).let { if (it < 0) 0 else it + 1 }
-        val cuoi = chu.indexOf('\n', viTri).let { if (it < 0) chu.length else it }
-        val dong = chu.substring(dau, cuoi)
+    private fun vungAp(): Pair<Int, Int> {
+        val chu = oThan.text
+        var dau = oThan.selectionStart.coerceIn(0, chu.length)
+        var cuoi = oThan.selectionEnd.coerceIn(0, chu.length)
+        if (dau > cuoi) dau = cuoi.also { cuoi = dau }
+        if (dau != cuoi) return dau to cuoi
 
-        val moi = when {
-            dong.startsWith(NoiDungGhiChu.O_TRONG) ->
-                NoiDungGhiChu.O_TICK + dong.removePrefix(NoiDungGhiChu.O_TRONG)
-            dong.startsWith(NoiDungGhiChu.O_TICK) -> dong.removePrefix(NoiDungGhiChu.O_TICK)
-            else -> NoiDungGhiChu.O_TRONG + dong
-        }
-        oThan.text.replace(dau, cuoi, moi)
-        oThan.setSelection((viTri + moi.length - dong.length).coerceIn(0, oThan.text.length))
+        while (dau > 0 && !chu[dau - 1].isWhitespace()) dau--
+        while (cuoi < chu.length && !chu[cuoi].isWhitespace()) cuoi++
+        return dau to cuoi
     }
 
-    private fun hienChonMau() {
+    private fun apKieu(co: Int) {
+        val (dau, cuoi) = vungAp()
+        if (dau >= cuoi) {
+            Toast.makeText(this, "Bôi đen phần chữ muốn đổi", Toast.LENGTH_SHORT).show()
+            return
+        }
+        SoanThao.doiKieu(oThan.text as Spannable, dau, cuoi, co)
+    }
+
+    private fun hienMauChu() {
+        val ten = arrayOf("Mặc định", "Đỏ", "Cam", "Xanh lá", "Xanh dương", "Tím")
+        val gt = arrayOf<Int?>(
+            null, 0xFFE05252.toInt(), 0xFFE8A33D.toInt(),
+            0xFF34A853.toInt(), 0xFF4A90D9.toInt(), 0xFF9B6DD6.toInt(),
+        )
         AlertDialog.Builder(this, mau.themeHopThoai)
-            .setTitle("Màu giấy")
-            .setItems(MauGhiChu.TEN) { _, chon ->
-                mauNen = chon
-                toMau()
+            .setTitle("Màu chữ")
+            .setItems(ten) { _, chon ->
+                val (dau, cuoi) = vungAp()
+                SoanThao.datMauChu(oThan.text as Spannable, dau, cuoi, gt[chon])
             }
             .show()
     }
 
+    /**
+     * Bat/tat o tick tren dong dang dat con tro.
+     *
+     * O tick la KY TU dau dong chu khong phai mot trang thai rieng — nho vay xoa
+     * lui qua no la no bien mat nhu moi ky tu khac.
+     */
+    private fun doiOTick() {
+        val chu = oThan.text
+        val viTri = oThan.selectionStart.coerceIn(0, chu.length)
+        val dau = chu.toString().lastIndexOf('\n', (viTri - 1).coerceAtLeast(0))
+            .let { if (it < 0) 0 else it + 1 }
+        val cuoi = chu.toString().indexOf('\n', viTri).let { if (it < 0) chu.length else it }
+        val dong = chu.subSequence(dau, cuoi).toString()
+
+        val moi = when {
+            dong.startsWith(SoanThao.O_TRONG) ->
+                SoanThao.O_TICK + dong.removePrefix(SoanThao.O_TRONG)
+            dong.startsWith(SoanThao.O_TICK) -> dong.removePrefix(SoanThao.O_TICK)
+            else -> SoanThao.O_TRONG + dong
+        }
+        // Chi thay phan DAU dong chu khong ca dong: thay ca dong la moi span dinh
+        // dang trong do bi xoa sach theo.
+        thayDauDong(dau, dong, moi)
+        oThan.setSelection((viTri + moi.length - dong.length).coerceIn(0, oThan.text.length))
+    }
+
+    private fun thayDauDong(dau: Int, cu: String, moi: String) {
+        val chu = oThan.text
+        when {
+            moi.length > cu.length -> chu.insert(dau, moi.substring(0, moi.length - cu.length))
+            moi.length < cu.length -> chu.delete(dau, dau + (cu.length - moi.length))
+            else -> chu.replace(dau, dau + 2, moi.substring(0, 2))
+        }
+    }
+
+    /**
+     * Cham vao o soan thao — cham dung o tick thi bat/tat no.
+     *
+     * Tra `false` cho moi truong hop khac de `EditText` xu ly nhu binh thuong:
+     * nuot su kien la mat luon dat con tro, boi den, cuon.
+     */
+    private fun chamVaoThan(su: MotionEvent): Boolean {
+        if (su.actionMasked != MotionEvent.ACTION_UP) return false
+        val bo = oThan.layout ?: return false
+
+        val x = su.x - oThan.totalPaddingLeft + oThan.scrollX
+        val y = su.y - oThan.totalPaddingTop + oThan.scrollY
+        val hang = bo.getLineForVertical(y.toInt())
+        val dauDong = bo.getLineStart(hang)
+        val chu = oThan.text
+
+        if (dauDong + 2 > chu.length) return false
+        val dau = chu.subSequence(dauDong, dauDong + 2).toString()
+        if (dau != SoanThao.O_TRONG && dau != SoanThao.O_TICK) return false
+
+        // Chi tinh la "cham vao o tick" khi cham dung ben trai o vuong; cham vao
+        // chu phia sau van la dat con tro nhu thuong.
+        if (x > bo.getPrimaryHorizontal(dauDong + 2)) return false
+
+        oThan.setSelection(dauDong)
+        doiOTick()
+        return true
+    }
+
+    private fun chenDuongKe() {
+        val chu = oThan.text
+        val vt = oThan.selectionEnd.coerceIn(0, chu.length)
+        val truoc = if (vt > 0 && chu[vt - 1] != '\n') "\n" else ""
+        chu.insert(vt, truoc + SoanThao.DUONG_KE + "\n")
+    }
+
+    // ------------------------------------------------------------ anh
+
+    private fun chonAnh() {
+        startActivityForResult(
+            Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                type = "image/*"
+                addCategory(Intent.CATEGORY_OPENABLE)
+            },
+            MA_CHON_ANH,
+        )
+    }
+
+    override fun onActivityResult(ma: Int, ketQua: Int, du: Intent?) {
+        super.onActivityResult(ma, ketQua, du)
+        if (ma != MA_CHON_ANH || ketQua != RESULT_OK) return
+        val nguon = du?.data ?: return
+
+        val ten = KhoAnh.them(this, nguon)
+        if (ten == null) {
+            Toast.makeText(this, "Không đọc được ảnh", Toast.LENGTH_SHORT).show()
+            return
+        }
+        chenAnh(ten)
+    }
+
+    private fun chenAnh(ten: String) {
+        val chu = oThan.text
+        val vt = oThan.selectionEnd.coerceIn(0, chu.length)
+        val truoc = if (vt > 0 && chu[vt - 1] != '\n') "\n" else ""
+
+        val them = SpannableStringBuilder(truoc + DinhDang.THAY_ANH + "\n")
+        val dau = truoc.length
+        them.setSpan(
+            SoanThao.TheAnh(ten), dau, dau + DinhDang.THAY_ANH.length,
+            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
+        )
+        chu.insert(vt, them)
+        veAnh()
+    }
+
+    /**
+     * Ve anh that len nhung cho da danh dau [SoanThao.TheAnh].
+     *
+     * Tach khoi [SoanThao] vi ve anh can `Context` va do rong that cua o soan
+     * thao; ben do co y giu thuan Kotlin de kiem thu tren JVM duoc.
+     */
+    private fun veAnh() {
+        val chu = oThan.text as? Spannable ?: return
+        val rong = (oThan.width - oThan.paddingLeft - oThan.paddingRight).takeIf { it > 0 } ?: return
+
+        for (the in chu.getSpans(0, chu.length, SoanThao.TheAnh::class.java)) {
+            val dau = chu.getSpanStart(the)
+            val cuoi = chu.getSpanEnd(the)
+            if (dau < 0 || cuoi <= dau) continue
+            // Da ve roi thi thoi, khong ve chong len lan nua moi lan quay lai man hinh.
+            if (chu.getSpans(dau, cuoi, ImageSpan::class.java).isNotEmpty()) continue
+
+            chu.setSpan(
+                ImageSpan(KhoAnh.anhVe(this, the.ten, rong, mau), ImageSpan.ALIGN_BASELINE),
+                dau, cuoi, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
+            )
+        }
+    }
+
+    // ------------------------------------------------------------ hanh dong
+
     private fun hienThem() {
         val muc = ArrayList<String>()
         val lam = ArrayList<() -> Unit>()
+
+        muc += "Màu giấy"
+        lam += { hienChonMauGiay() }
 
         muc += if (thuMuc.isEmpty()) "Chuyển vào thư mục…" else "Thư mục: $thuMuc"
         lam += { hienChonThuMuc() }
@@ -257,6 +419,16 @@ class SuaGhiChuActivity : Activity() {
 
         AlertDialog.Builder(this, mau.themeHopThoai)
             .setItems(muc.toTypedArray()) { _, chon -> lam[chon]() }
+            .show()
+    }
+
+    private fun hienChonMauGiay() {
+        AlertDialog.Builder(this, mau.themeHopThoai)
+            .setTitle("Màu giấy")
+            .setItems(MauGhiChu.TEN) { _, chon ->
+                mauNen = chon
+                toMau()
+            }
             .show()
     }
 
@@ -295,7 +467,7 @@ class SuaGhiChuActivity : Activity() {
      */
     private fun luu() {
         val tieuDe = oTieuDe.text.toString().trim()
-        val than = oThan.text.toString()
+        val than = oThan.text
         if (id == 0L && tieuDe.isBlank() && than.isBlank()) return
 
         val cu = goc
@@ -303,7 +475,7 @@ class SuaGhiChuActivity : Activity() {
             id = id,
             uid = cu?.uid.orEmpty(),
             tieuDe = tieuDe,
-            noiDung = NoiDungGhiChu.tuSua(than),
+            noiDung = SoanThao.ghi(than),
             thuMuc = thuMuc,
             ghim = ghim,
             mau = mauNen,
@@ -354,26 +526,38 @@ class SuaGhiChuActivity : Activity() {
             setOnClickListener { bam() }
         }
 
-    /**
-     * Nut hien mot ky tu thay vi mot hinh ve.
-     *
-     * Chang nay chua ve icon cho o tick va mau giay; ky tu ☑ / ● doc duoc ngay va
-     * khong ton mot tep vector cho mot thu se doi o chang sau.
-     */
+    /** Nut dinh dang, chinh no hien dung kieu ma no ap — `B` in dam, `I` nghieng. */
+    private fun nutKieu(
+        ky: String,
+        ten: String,
+        co: Int,
+        dam: Boolean = false,
+        nghieng: Boolean = false,
+    ): View = nutChu(ky, ten) { apKieu(co) }.apply {
+        val t = this as TextView
+        t.setTypeface(
+            t.typeface,
+            when {
+                dam && nghieng -> android.graphics.Typeface.BOLD_ITALIC
+                dam -> android.graphics.Typeface.BOLD
+                nghieng -> android.graphics.Typeface.ITALIC
+                else -> android.graphics.Typeface.NORMAL
+            },
+        )
+    }
+
     private fun nutChu(ky: String, ten: String, bam: () -> Unit): View =
         TextView(this).apply {
             text = ky
             contentDescription = ten
             gravity = Gravity.CENTER
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
             setTextColor(mau.chuChinh)
             background = GradientDrawable().apply {
                 cornerRadius = dp(20).toFloat()
                 setColor(BangMau.mauMo(mau.chuChinh, 0.06f))
             }
-            layoutParams = LinearLayout.LayoutParams(dp(40), dp(40)).apply {
-                rightMargin = dp(8)
-            }
+            layoutParams = LinearLayout.LayoutParams(dp(40), dp(40)).apply { rightMargin = dp(8) }
             isClickable = true
             setOnClickListener { bam() }
         }
@@ -381,5 +565,6 @@ class SuaGhiChuActivity : Activity() {
     companion object {
         const val KHOA_ID = "id"
         const val KHOA_THU_MUC = "thu_muc"
+        private const val MA_CHON_ANH = 1
     }
 }

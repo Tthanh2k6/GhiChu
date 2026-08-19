@@ -7,11 +7,9 @@ import java.time.LocalDate
 import java.time.ZoneId
 
 /**
- * Kiem thu phan LOI cua ghi chu tren JVM — khong can dien thoai.
+ * Kiem thu phan LOI cua the ghi chu tren JVM — khong can dien thoai.
  *
- * Ba nhom o day deu la cho tung lam mat du lieu that neu sai:
- *   * [NoiDungGhiChu.deSua] / [tuSua] — di sai mot buoc la o tick bien thanh
- *     dong chu thuong khi mo ghi chu ra sua;
+ * Doc/ghi dinh dang nam o [DinhDangTest]; o day chi con hai nhom:
  *   * [GhiChu.tieuDeHien] / [xemTruoc] — sai la the ghi chu lap lai dong dau
  *     hai lan;
  *   * [NgayVN.nhanDanhSach] — sai la moi ghi chu deu hien ngay hom nay.
@@ -19,36 +17,6 @@ import java.time.ZoneId
 class GhiChuTest {
 
     private val zone: ZoneId = ZoneId.of("Asia/Ho_Chi_Minh")
-
-    // ---- markup <-> o soan thao ----
-
-    @Test
-    fun `o tick di qua o soan thao roi ve van con nguyen`() {
-        val markup = listOf(
-            """<text indent="1">Việc hôm nay</text>""",
-            """<input type="checkbox" checked="true" indent="1" />Mua sữa""",
-            """<input type="checkbox" indent="1" />Gọi cho Thành""",
-        ).joinToString("\n")
-
-        val soan = NoiDungGhiChu.deSua(markup)
-        assertEquals("Việc hôm nay\n☑ Mua sữa\n☐ Gọi cho Thành", soan)
-        assertEquals(markup, NoiDungGhiChu.tuSua(soan))
-    }
-
-    @Test
-    fun `chu tron van vut o tick di, khong duoc dung de mo ra sua`() {
-        val markup = """<input type="checkbox" indent="1" />Mua sữa"""
-        assertEquals("Mua sữa", NoiDungGhiChu.chuTron(markup))
-        assertEquals("☐ Mua sữa", NoiDungGhiChu.deSua(markup))
-    }
-
-    @Test
-    fun `ky tu phai thoat khi ghi xuong va tra lai khi doc len`() {
-        val soan = "a < b & c > d"
-        val markup = NoiDungGhiChu.tuSua(soan)
-        assertTrue(markup.contains("&lt;") && markup.contains("&amp;"))
-        assertEquals(soan, NoiDungGhiChu.deSua(markup))
-    }
 
     // ---- tieu de va xem truoc ----
 
