@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Goi Gemini va Supabase. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Quet ma QR. Xin luc bam nut, khong xin luc mo app. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Nhac su kien / ghi chu dung gio. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+
+    <!-- May khong co camera van cai duoc app; chi la khong quet duoc QR. -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
+    <application
+        android:name="com.ghichu.Ung"
+        android:label="@string/ten_app"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:theme="@style/ThemeGhiChu"
+        android:supportsRtl="true"
+        android:allowBackup="true"
+        android:enableOnBackInvokedCallback="true">
+
+        <activity
+            android:name="com.ghichu.ManHinhChinhActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name="com.ghichu.SuaGhiChuActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name="com.ghichu.LichTrinhActivity"
+            android:exported="false" />
+
+        <activity
+            android:name="com.ghichu.TroLyAiActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name="com.ghichu.QuetQrActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
+        <activity
+            android:name="com.ghichu.DongBoActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name="com.ghichu.CaiDatGiaoDienActivity"
+            android:exported="false" />
+
+        <!--
+          Widget Lich trinh. `exported="true"` la BAT BUOC: he thong widget goi
+          broadcast tu tien trinh khac vao day, dat false la widget khong bao gio
+          duoc ve.
+        -->
+        <receiver
+            android:name="com.ghichu.LichTrinhWidget"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/ghichu_widget_lich_info" />
+        </receiver>
+    </application>
+</manifest>

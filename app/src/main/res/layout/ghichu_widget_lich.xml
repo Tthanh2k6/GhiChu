@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Widget Lịch trình: các sự kiện SẮP TỚI, mỗi dòng hai cột —
+  cột trái = thứ + ngày, cột phải = tên + giờ.
+  Dòng trên cùng nổi bật = việc đang hoặc sắp diễn ra gần nhất.
+
+  BA RÀNG BUỘC CỦA RemoteViews, đừng quên:
+   1. KHÔNG dùng thẻ <View> trơn — RemoteViews chỉ nhận LinearLayout /
+      FrameLayout / TextView / ImageView… Muốn vạch ngăn thì dùng TextView
+      cao 1dp. Sai điều này là widget báo "Không thể tải tiện ích".
+   2. Danh sách KHÔNG cuộn: thêm thẳng từng dòng vào `ghichu_widget_khung`.
+      Đã thử RemoteViewsService và RemoteCollectionItems ở dự án cũ, bỏ cả hai.
+   3. Màu chữ do code đặt lúc chạy (theo giao diện sáng/tối), giá trị ở đây chỉ
+      là mặc định cho lúc xem trước trong bảng chọn widget.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/ghichu_widget_goc"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/ghichu_widget_nen_toi"
+    android:padding="12dp">
+
+    <TextView
+        android:id="@+id/ghichu_widget_dau"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Lịch trình"
+        android:textColor="#F2F2F2"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:paddingBottom="4dp" />
+
+    <LinearLayout
+        android:id="@+id/ghichu_widget_hang_dau"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingTop="2dp"
+        android:paddingBottom="6dp">
+
+        <TextView
+            android:id="@+id/ghichu_widget_ngay_dau"
+            android:layout_width="46dp"
+            android:layout_height="wrap_content"
+            android:textColor="#FFBF0F"
+            android:textSize="11sp"
+            android:gravity="center_horizontal"
+            android:paddingEnd="8dp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/ghichu_widget_ten_dau"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#F2F2F2"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/ghichu_widget_gio_dau"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#CCFFFFFF"
+                android:textSize="12sp"
+                android:maxLines="1"
+                android:ellipsize="end" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Vạch ngăn: TextView cao 1dp, KHÔNG được dùng thẻ <View>. -->
+    <TextView
+        android:id="@+id/ghichu_widget_vach"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#22FFFFFF" />
+
+    <LinearLayout
+        android:id="@+id/ghichu_widget_khung"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:paddingTop="4dp" />
+</LinearLayout>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Khai bao widget Lich trinh.
+
+  updatePeriodMillis = 30 phut: widget hien "sap toi" nen phai tu troi theo thoi
+  gian, khong the doi nguoi dung mo app. He thong khong cho ngan hon 30 phut.
+  Moi lan sua/xoa su kien thi code tu bao cap nhat ngay, khong cho het chu ky.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="180dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="3"
+    android:targetCellHeight="2"
+    android:updatePeriodMillis="1800000"
+    android:initialLayout="@layout/ghichu_widget_lich"
+    android:previewLayout="@layout/ghichu_widget_lich"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen" />

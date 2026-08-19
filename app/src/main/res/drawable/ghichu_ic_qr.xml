@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Nut "Quet QR" tren thanh tren cung, dat ben TRAI nut thu muc.
+
+  24x24dp — co chuan cua icon thanh cong cu Android, khop voi hai nut san co.
+  Mau lay theo ?android:attr/textColorPrimary de tu doi theo nen sang/toi thay
+  vi dong cung mot mau.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24.0" android:viewportHeight="24.0"
+    >
+    <!-- Ba o vuong dinh vi cua ma QR -->
+    <path android:fillColor="#000000" android:fillType="evenOdd"
+        android:pathData="M3,3h8v8h-8zM5,5v4h4v-4zM13,3h8v8h-8zM15,5v4h4v-4zM3,13h8v8h-8zM5,15v4h4v-4z" />
+    <!-- Vai o du lieu cho ra dang ma QR -->
+    <path android:fillColor="#000000"
+        android:pathData="M13,13h3v3h-3zM18,13h3v3h-3zM13,18h3v3h-3zM18,18h3v3h-3z" />
+</vector>

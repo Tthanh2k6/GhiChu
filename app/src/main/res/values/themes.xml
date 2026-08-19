@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Theme dua tren Material cua KHUNG, khong phai AppCompat/Material3 cua AndroidX —
+  ca app khong keo AndroidX vao (xem app/build.gradle.kts).
+
+  `DayNight` de he thong tu doi sang/toi. Ngoai ra [BangMau] con mot lua chon
+  rieng trong app (sang / toi / theo he thong); hai thu phai khop nhau nen moi
+  Activity deu goi `setTheme(BangMau.cua(this).themeManHinh)` truoc setContentView.
+-->
+<resources>
+    <style name="ThemeGhiChu" parent="@android:style/Theme.DeviceDefault.DayNight">
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowBackground">?android:attr/colorBackground</item>
+    </style>
+</resources>
