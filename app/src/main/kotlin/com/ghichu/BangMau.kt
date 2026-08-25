@@ -6,12 +6,13 @@ import android.graphics.Color
 import kotlin.math.roundToInt
 
 /**
- * Bang mau cho man Lich trinh, Dong bo va Tro ly AI.
+ * Bang mau cua ca app.
  *
  * Gia tri lay THANG tu tai nguyen cua app Ghi chu Xiaomi da giai nen
  * (`reference/miui-notes/resources/res/values/colors.xml` cho ban sang,
- * `values-night/` cho ban toi) — ten tai nguyen goc ghi trong chu thich de con
- * doi chieu. Dung chinh "cho dep" neu chua do lai.
+ * `values-night/` cho ban toi; bang tong hop o `docs/SPEC-GOC.md`) — ten tai
+ * nguyen goc ghi trong chu thich de con doi chieu. Dung chinh "cho dep" neu
+ * chua do lai.
  *
  * Vi sao la LOP chu khong phai hang so: ban dau man Lich trinh dong cung mau
  * toi, may de giao dien sang thi luoi den si giua app trang. Moi man giu mot
@@ -19,8 +20,49 @@ import kotlin.math.roundToInt
  */
 class BangMau(val toi: Boolean) {
 
-    /** Nen man hinh. */
-    val nen: Int = if (toi) 0xFF000000.toInt() else 0xFFFFFFFF.toInt()
+    /**
+     * Nen man hinh chinh. goc: homepage_primary_color.
+     *
+     * Ban sang la XAM NHAT #F7F7F7 chu khong phai trang tinh — the ghi chu
+     * ([nenThe] trang) phai noi tren nen, khong co vien nao ca.
+     */
+    val nen: Int = if (toi) 0xFF000000.toInt() else 0xFFF7F7F7.toInt()
+
+    /** Nen THE ghi chu. goc: v12_theme_content_bg_color. Khong vien, khong bong. */
+    val nenThe: Int = if (toi) 0xFF242424.toInt() else 0xFFFFFFFF.toInt()
+
+    /** Tieu de tren the. goc: v8_text_appearance_grid_primary_text_color. */
+    val chuTheTieuDe: Int = if (toi) 0xF2FFFFFF.toInt() else 0xDE000000.toInt()
+
+    /** Than bai tren the. goc: v11_text_appearance_secondary_text_color. */
+    val chuTheThan: Int = if (toi) 0xFF919191.toInt() else 0xFF666666.toInt()
+
+    /** Lop phu len the khi duoc CHON. goc: item_fg_press_color. */
+    val lopPhuChon: Int = if (toi) 0x1FFFFFFF else 0x14000000
+
+    /** Nen vien thuoc tim kiem. goc: miuix_appcompat_edit_text_search_bg_color. */
+    val nenTimKiem: Int = if (toi) 0x24FFFFFF else 0x0F000000
+
+    /** Chu goi y trong o tim kiem. goc: miuix_color_black_level6 / white_level6. */
+    val chuGoiY: Int = if (toi) 0x4DFFFFFF else 0x4D000000
+
+    /** Tab duoi dang CHON. goc: navigator_bottom_button_color. KHONG phai vang. */
+    val tabChon: Int = if (toi) 0xF2FFFFFF.toInt() else 0xFF000000.toInt()
+
+    /** Tab duoi thuong. goc: navigator_bottom_button_unchecked_color. */
+    val tabThuong: Int = if (toi) 0x80FFFFFF.toInt() else 0x66000000.toInt()
+
+    /** Vach 0.5dp tren thanh tab / toolbar. goc: miuix_design_default_color_surface_divider. */
+    val vachThanh: Int = if (toi) 0x26FFFFFF else 0x1A000000
+
+    /** Dong thong tin duoi tieu de man soan. goc: note_edit_extra_info_text_color. */
+    val chuThongTin: Int = if (toi) 0x66FFFFFF else 0x66000000
+
+    /** Icon toolbar man soan. goc: action_bottom_button_color. */
+    val chuToolbar: Int = if (toi) 0xCCFFFFFF.toInt() else 0xCC000000.toInt()
+
+    /** Vach tren toolbar man soan. goc: toolbar_divide_color. */
+    val vachToolbar: Int = if (toi) 0x0DFFFFFF else 0x0D000000
 
     /** goc: v8_text_appearance_list_primary_text_color */
     val chuChinh: Int = if (toi) 0xF2FFFFFF.toInt() else 0xFF000000.toInt()
@@ -31,8 +73,8 @@ class BangMau(val toi: Boolean) {
     /** goc: v8_text_appearance_list_tertiary_text_color */
     val chuMo: Int = if (toi) 0xFF7C7C7C.toInt() else 0xFF999999.toInt()
 
-    /** goc: note_item_stick_icon_color — vang ho phach, hai ban giong nhau. */
-    val nhan: Int = 0xFFFFBF0F.toInt()
+    /** goc: theme_main_color — vang chu dao. Sang #FFBB0F, toi #FFBF0F. */
+    val nhan: Int = if (toi) 0xFFFFBF0F.toInt() else 0xFFFFBB0F.toInt()
     val chuTrenNhan: Int = 0xFF1A1A1A.toInt()
 
     /** Vach gio ngang va vach ngan cot. */

@@ -34,8 +34,9 @@ object MauGhiChu {
     /** Nen cua the ghi chu. Chi so 0 hoac ngoai bang -> nen mac dinh cua man hinh. */
     fun nen(chiSo: Int, mau: BangMau): Int {
         if (chiSo <= 0 || chiSo >= BANG.size) {
-            // Nen the mac dinh: hoi lech khoi nen man hinh de con thay ranh the.
-            return if (mau.toi) 0xFF161616.toInt() else 0xFFF5F5F5.toInt()
+            // Nen the mac dinh = v12_theme_content_bg_color cua app goc: trang tinh
+            // tren nen trang xam #F7F7F7 (sang), #242424 tren nen den (toi).
+            return mau.nenThe
         }
         return BANG[chiSo][if (mau.toi) 1 else 0]
     }

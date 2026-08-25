@@ -15,12 +15,21 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.WindowInsets
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.HorizontalScrollView
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Typeface
+import android.graphics.drawable.Drawable
+import android.text.TextPaint
+import android.text.style.CharacterStyle
+import android.text.style.ReplacementSpan
 
 /**
  * Soan mot ghi chu.
@@ -68,6 +77,12 @@ class SuaGhiChuActivity : Activity() {
             nhacLuc = g.nhacLuc
         }
 
+        // Ve tran vien, thanh trang thai trong suot — nhu theme goc.
+        window.statusBarColor = 0
+        window.navigationBarColor = 0
+        window.decorView.systemUiVisibility = if (mau.toi) 0 else
+            View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+
         nen = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         nen.addView(dungThanhTren())
         nen.addView(dungThan(g), LinearLayout.LayoutParams(
@@ -82,6 +97,12 @@ class SuaGhiChuActivity : Activity() {
             // ban phim bat len la no da phu len thanh dieu huong roi, cong ca hai
             // thi thua ra mot khoang trong bang chieu cao thanh.
             view.setPadding(0, thanh.top, 0, maxOf(thanh.bottom, banPhim.bottom))
+            // Ban phim mo = dang SOAN: ban goc doi nhom nut phai sang undo/redo/done.
+            // O day: an share/mau/them, hien "Xong" (khong co undo/redo — EditText
+            // cua khung khong mo API undo).
+            val dangSoan = banPhim.bottom > 0
+            nhomXem.visibility = if (dangSoan) View.GONE else View.VISIBLE
+            nutXong.visibility = if (dangSoan) View.VISIBLE else View.GONE
             insets
         }
         setContentView(nen)
@@ -95,72 +116,168 @@ class SuaGhiChuActivity : Activity() {
 
     // ------------------------------------------------------------ dung giao dien
 
+    private lateinit var nhomXem: LinearLayout
+    private lateinit var nutXong: View
+
+    /**
+     * Thanh tren 56dp (miuix_appcompat_action_bar_default_height), nen trong suot.
+     * Trai: nut back 40dp (v12_notes_edit_header_ic_size). Phai: che do XEM =
+     * chia se / mau giay / them, moi nut 40dp cach nhau 12dp
+     * (v12_notes_edit_header_ic_margin); che do SOAN = nut Xong.
+     * Tint icon = action_button_color (#000 / #fff). KHONG ripple.
+     */
     private fun dungThanhTren(): View {
         val thanh = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(6), dp(6), dp(6), dp(2))
+            setPadding(dp(8), 0, dp(12), 0)
         }
         thanh.addView(nutAnh(R.drawable.ic_quay_lai, "Quay lại") { finish() })
         thanh.addView(View(this), LinearLayout.LayoutParams(0, 1, 1f))
-        thanh.addView(nutAnh(R.drawable.ic_ghim, "Ghim") {
-            ghim = !ghim
-            toMau()
-            Toast.makeText(this, if (ghim) "Đã ghim" else "Bỏ ghim", Toast.LENGTH_SHORT).show()
-        }.also { it.tag = "nut_ghim" })
-        thanh.addView(nutAnh(R.drawable.ic_cai_dat, "Thêm") { hienThem() })
+
+        nhomXem = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        nhomXem.addView(nutChuNho("↗", "Chia sẻ") { hienXuat() })
+        nhomXem.addView(nutChuNho("◐", "Màu giấy") { hienChonMauGiay() }.also {
+            (it.layoutParams as LinearLayout.LayoutParams).leftMargin = dp(12)
+        })
+        nhomXem.addView(nutChuNho("⋯", "Thêm") { hienThem() }.also {
+            (it.layoutParams as LinearLayout.LayoutParams).leftMargin = dp(12)
+        })
+        thanh.addView(nhomXem)
+
+        nutXong = nutChuNho("✓", "Xong") {
+            oThan.clearFocus()
+            oTieuDe.clearFocus()
+            getSystemService(android.view.inputmethod.InputMethodManager::class.java)
+                ?.hideSoftInputFromWindow(nen.windowToken, 0)
+        }.apply { visibility = View.GONE }
+        thanh.addView(nutXong)
+
+        thanh.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(56))
         return thanh
     }
+
+    private lateinit var chipThuMuc: TextView
+    private lateinit var oDem: TextView
 
     private fun dungThan(g: GhiChu?): View {
         val cuon = ScrollView(this).apply { isFillViewport = true }
         val cot = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(20), dp(4), dp(20), dp(24))
+            // note_editor_padding = 12dp; edit_content paddingBottom 120dp de cuon
+            // lo ra cuoi trang.
+            setPadding(dp(12), 0, dp(12), dp(120))
         }
 
+        // Chip thu muc (note_edit_folder_layout): cao 36dp, bo goc 12dp, vien
+        // 0.5dp #0D000000, ruot #EEEEEE / #242424; icon 15dp cach trai 16dp, chu
+        // 12sp medium #CC000000 / #FFFFFF cach icon 4dp, cach phai 16dp; duoi 12dp.
+        chipThuMuc = TextView(this).apply {
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            setTextColor(if (mau.toi) 0xFFFFFFFF.toInt() else 0xCC000000.toInt())
+            isSingleLine = true
+            ellipsize = android.text.TextUtils.TruncateAt.END
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(16), 0, dp(16), 0)
+            compoundDrawablePadding = dp(4)
+            val icon = resources.getDrawable(R.drawable.ic_chip_thu_muc, null).mutate().apply {
+                setBounds(0, 0, dp(15), dp(15))
+                setTint(if (mau.toi) 0xFFFFFFFF.toInt() else 0xFF000000.toInt())
+            }
+            setCompoundDrawables(icon, null, null, null)
+            background = GradientDrawable().apply {
+                cornerRadius = dp(12).toFloat()
+                setColor(if (mau.toi) 0xFF242424.toInt() else 0xFFEEEEEE.toInt())
+                setStroke((0.5f * md.density).toInt().coerceAtLeast(1), 0x0D000000)
+            }
+            isClickable = true
+            setOnClickListener { hienChonThuMuc() }
+        }
+        cot.addView(chipThuMuc, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT, dp(36),
+        ).apply { bottomMargin = dp(12) })
+
+        // Tieu de: note_edit_title_font_size = 24sp, semibold, minHeight 40sp,
+        // hint mau note_title_hint_color_default #CCCCCC / #333333.
         oTieuDe = EditText(this).apply {
             hint = "Tiêu đề"
-            setHintTextColor(mau.chuMo)
-            setTextColor(mau.chuChinh)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f)
-            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setHintTextColor(if (mau.toi) 0xFF333333.toInt() else 0xFFCCCCCC.toInt())
+            setTextColor(if (mau.toi) 0xE6FFFFFF.toInt() else 0xFF000000.toInt())
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 24f)
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
             background = null
             isSingleLine = true
-            setPadding(0, dp(8), 0, dp(8))
+            minHeight = (40 * resources.displayMetrics.scaledDensity).toInt()
+            setPadding(0, 0, 0, 0)
             setText(g?.tieuDe.orEmpty())
+            filters = arrayOf(android.text.InputFilter.LengthFilter(100))
         }
         cot.addView(oTieuDe)
 
+        // Dong thong tin (note_extra_info_layout): "19 tháng 8  21:47 | 123 ký tự",
+        // 12sp mau note_edit_extra_info_text_color; vach dung 0.5dp x 10sp cach
+        // hai ben 10dp; marginTop 8dp, marginBottom 28dp.
+        val hangTin = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
         oChan = TextView(this).apply {
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-            setTextColor(mau.chuMo)
+            setTextColor(mau.chuThongTin)
             text = nhanChan(g)
         }
-        cot.addView(oChan)
+        hangTin.addView(oChan)
+        hangTin.addView(View(this).apply { setBackgroundColor(mau.chuThongTin) },
+            LinearLayout.LayoutParams(
+                (0.5f * md.density).toInt().coerceAtLeast(1),
+                (10 * resources.displayMetrics.scaledDensity).toInt(),
+            ).apply { leftMargin = dp(10); rightMargin = dp(10) })
+        oDem = TextView(this).apply {
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            setTextColor(mau.chuThongTin)
+        }
+        hangTin.addView(oDem)
+        cot.addView(hangTin, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT,
+        ).apply { topMargin = dp(8); bottomMargin = dp(28) })
 
+        // Than bai: text_font_size = 16sp, gian dong mac dinh, minHeight 200dp.
         oThan = EditText(this).apply {
             hint = "Bắt đầu viết…"
             setHintTextColor(mau.chuMo)
-            setTextColor(mau.chuChinh)
+            setTextColor(if (mau.toi) 0xE6FFFFFF.toInt() else 0xFF000000.toInt())
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             background = null
             gravity = Gravity.TOP
-            setLineSpacing(dp(4).toFloat(), 1f)
-            setPadding(0, dp(12), 0, 0)
+            minHeight = dp(200)
+            setPadding(0, 0, 0, 0)
             setText(SoanThao.doc(g?.noiDung.orEmpty()), TextView.BufferType.SPANNABLE)
             setOnTouchListener { _, su -> chamVaoThan(su) }
+            addTextChangedListener(object : android.text.TextWatcher {
+                override fun afterTextChanged(s: android.text.Editable?) {
+                    trangTriOTick()
+                    capNhatDem()
+                }
+                override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit
+                override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit
+            })
         }
         cot.addView(oThan, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT,
         ))
+        trangTriOTick()
+        capNhatDem()
+        capNhatChip()
 
         // Phai doi do rong that cua o soan thao roi moi ve anh — luc dung view no
         // van con bang 0, ve luc do la anh be ti mot chuong.
         oThan.post { veAnh() }
 
-        // Ghi chu moi thi mo ban phim luon — nguoi dung bam "+" la de viet, khong
-        // phai de ngam trang trang roi bam them mot cai nua.
+        // Ghi chu moi thi mo ban phim luon — nguoi dung bam "+" la de viet.
         if (g == null) {
             oThan.requestFocus()
             oThan.post {
@@ -173,33 +290,180 @@ class SuaGhiChuActivity : Activity() {
         return cuon
     }
 
+    /** "123 ký tự" — plurals word_count cua ban goc. */
+    private fun capNhatDem() {
+        oDem.text = oThan.text.length.toString() + " ký tự"
+    }
+
+    private fun capNhatChip() {
+        chipThuMuc.text = thuMuc.ifEmpty { "Chưa xếp thư mục" }
+    }
+
+    // ------------------------------------------------------------ o tick trong bai
+
     /**
-     * Thanh cong cu soan thao.
+     * Ve o tick bang vector goc (ic_richtext_checkbox_u / _c, 16dp) thay cho ky tu
+     * ☐ ☑, va lam mo 40% chu cua dong DA tick — dung CheckboxSpan cua ban goc
+     * (`textPaint.setAlpha(102)`, khong gach ngang).
      *
-     * Cuon ngang duoc: chin nut khong vua be ngang may nho, ma bo bot nut nao
-     * cung la mot chuc nang bien mat.
+     * Du lieu ben duoi VAN la ky tu "☐ " / "☑ " (xem [SoanThao]); o day chi khoac
+     * span ve len. Goi sau moi lan chu doi (TextWatcher) — span cu bi lech thi go
+     * het roi dat lai, re hon nhieu so voi theo doi tung phep sua.
+     */
+    private fun trangTriOTick() {
+        val chu = oThan.text as? Spannable ?: return
+        for (cu in chu.getSpans(0, chu.length, TheOTick::class.java)) chu.removeSpan(cu)
+        for (cu in chu.getSpans(0, chu.length, MoChuTick::class.java)) chu.removeSpan(cu)
+
+        val co = (16 * resources.displayMetrics.scaledDensity).toInt()
+        var dau = 0
+        val toan = chu.toString()
+        while (dau <= toan.length) {
+            val cuoi = toan.indexOf('\n', dau).let { if (it < 0) toan.length else it }
+            val daTick = toan.startsWith(SoanThao.O_TICK, dau)
+            if (daTick || toan.startsWith(SoanThao.O_TRONG, dau)) {
+                chu.setSpan(TheOTick(daTick, co), dau, dau + 2, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                if (daTick && cuoi > dau + 2) {
+                    chu.setSpan(MoChuTick(), dau + 2, cuoi, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                }
+            }
+            if (cuoi >= toan.length) break
+            dau = cuoi + 1
+        }
+    }
+
+    /** O tick 16dp + khoang cach 12dp (note_edit_checkbox_margin_end) toi chu. */
+    private inner class TheOTick(val daTick: Boolean, val co: Int) : ReplacementSpan() {
+        private val hinh: Drawable = resources.getDrawable(
+            if (daTick) R.drawable.ic_tick_da else R.drawable.ic_tick_trong, null,
+        ).mutate().apply {
+            setBounds(0, 0, co, co)
+            // richTextListElementPrimaryColor #8C93B0 / #FFF; ...CheckedColor #FFBB00 / #FFF.
+            setTint(
+                when {
+                    daTick && mau.toi -> 0xFFFFFFFF.toInt()
+                    daTick -> 0xFFFFBB00.toInt()
+                    mau.toi -> 0xFFFFFFFF.toInt()
+                    else -> 0xFF8C93B0.toInt()
+                },
+            )
+        }
+
+        override fun getSize(p: Paint, t: CharSequence?, a: Int, b: Int, fm: Paint.FontMetricsInt?): Int =
+            co + dp(12)
+
+        override fun draw(c: Canvas, t: CharSequence?, a: Int, b: Int, x: Float, top: Int, y: Int, bottom: Int, p: Paint) {
+            // bounds.bottom = baseline + 0.15*size, nhu CheckboxSpan goc.
+            val duoi = y + (co * 0.15f).toInt()
+            c.save()
+            c.translate(x, (duoi - co).toFloat())
+            hinh.draw(c)
+            c.restore()
+        }
+    }
+
+    /** Chu cua dong da tick: alpha 102/255 (40%) — CheckboxSpan.updateDrawState goc. */
+    private class MoChuTick : CharacterStyle() {
+        override fun updateDrawState(tp: TextPaint) { tp.alpha = 102 }
+    }
+
+    private lateinit var bangDinhDang: View
+
+    /**
+     * Thanh cong cu duoi (small_screen_mode_tool_group): hang 60dp
+     * (notes_edit_toolbar_height), vach 0.5dp tren (toolbar_divide_color), nen
+     * #F9FFFFFF / #F9171717. Trai (weight 0.81, paddingStart 15dp, paddingEnd 3dp):
+     * nam nut 36dp chia deu — AI, ghi am, anh, [ban do thay cho ve tay], o tick.
+     * Phai (weight 0.19): nut "T" (ic_tool_richtext) marginEnd 28dp, mo bang dinh
+     * dang chu ben duoi (expand_container). Tint icon action_bottom_button_color.
      */
     private fun dungThanhCongCu(): View {
+        val cot = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(if (mau.toi) 0xF9171717.toInt() else 0xF9FFFFFF.toInt())
+        }
+        cot.addView(View(this).apply { setBackgroundColor(mau.vachToolbar) },
+            LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, (0.5f * md.density).toInt().coerceAtLeast(1)))
+
         val hang = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(12), dp(4), dp(12), dp(4))
         }
-        hang.addView(nutKieu("B", "Đậm", DinhDang.DAM, dam = true))
-        hang.addView(nutKieu("I", "Nghiêng", DinhDang.NGHIENG, nghieng = true))
-        hang.addView(nutKieu("U", "Gạch chân", DinhDang.GACH_CHAN))
-        hang.addView(nutKieu("S", "Gạch ngang", DinhDang.GACH_NGANG))
-        hang.addView(nutKieu("A", "Cỡ chữ lớn", DinhDang.CHU_TO))
-        hang.addView(nutChu("🎨", "Màu chữ") { hienMauChu() })
-        hang.addView(nutChu("☑", "Ô tick") { doiOTick() })
-        hang.addView(nutChu("🖼", "Chèn ảnh") { chonAnh() })
-        hang.addView(nutChu("🎙", "Ghi âm") { ghiAm() })
-        hang.addView(nutChu("🧠", "Bản đồ tư duy") { chenBanDo() })
-        hang.addView(nutChu("—", "Đường kẻ") { chenDuongKe() })
+        val trai = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(15), dp(12), dp(3), dp(12))
+        }
+        trai.addView(nutToolbar(R.drawable.ic_ai, "Trợ lý AI") {
+            startActivity(Intent(this, TroLyAiActivity::class.java))
+        })
+        trai.addView(nutToolbar(R.drawable.ic_ghi_am, "Ghi âm") { ghiAm() })
+        trai.addView(nutToolbar(R.drawable.ic_anh, "Chèn ảnh") { chonAnh() })
+        trai.addView(nutToolbar(R.drawable.ic_goc_ban_do, "Bản đồ tư duy") { chenBanDo() })
+        trai.addView(nutToolbar(R.drawable.ic_o_tick, "Ô tick") { doiOTick() })
+        hang.addView(trai, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 0.81f))
 
-        return HorizontalScrollView(this).apply {
+        val phai = FrameLayout(this)
+        val nutAa = ImageView(this).apply {
+            setImageResource(R.drawable.ic_aa)
+            setColorFilter(mau.chuToolbar)
+            contentDescription = "Định dạng chữ"
+            isClickable = true
+            setOnClickListener {
+                bangDinhDang.visibility = if (bangDinhDang.visibility == View.VISIBLE) View.GONE else View.VISIBLE
+            }
+            nhanMoDan(this)
+        }
+        phai.addView(nutAa, FrameLayout.LayoutParams(dp(36), dp(36)).apply {
+            gravity = Gravity.CENTER_VERTICAL or Gravity.END
+            rightMargin = dp(28)
+        })
+        hang.addView(phai, LinearLayout.LayoutParams(0, dp(60), 0.19f))
+        cot.addView(hang, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(60)))
+
+        // Bang dinh dang chu (expand_container), an mac dinh.
+        val bang = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(12), dp(4), dp(12), dp(12))
+            visibility = View.GONE
+        }
+        bang.addView(nutKieu("B", "Đậm", DinhDang.DAM, dam = true))
+        bang.addView(nutKieu("I", "Nghiêng", DinhDang.NGHIENG, nghieng = true))
+        bang.addView(nutKieu("U", "Gạch chân", DinhDang.GACH_CHAN))
+        bang.addView(nutKieu("S", "Gạch ngang", DinhDang.GACH_NGANG))
+        bang.addView(nutKieu("A", "Cỡ chữ lớn", DinhDang.CHU_TO))
+        bang.addView(nutChu("🎨", "Màu chữ") { hienMauChu() })
+        bang.addView(nutChu("—", "Đường kẻ") { chenDuongKe() })
+        bangDinhDang = HorizontalScrollView(this).apply {
             isHorizontalScrollBarEnabled = false
-            addView(hang)
+            addView(bang)
+            visibility = View.GONE
+        }
+        cot.addView(bangDinhDang)
+        return cot
+    }
+
+    /** Nut toolbar 36dp, chia deu be ngang (width 0 weight 1), tint #CC000000 / #CCFFFFFF. */
+    private fun nutToolbar(anh: Int, ten: String, bam: () -> Unit): View = ImageView(this).apply {
+        setImageResource(anh)
+        setColorFilter(mau.chuToolbar)
+        contentDescription = ten
+        scaleType = ImageView.ScaleType.FIT_CENTER
+        isClickable = true
+        layoutParams = LinearLayout.LayoutParams(0, dp(36), 1f)
+        setOnClickListener { bam() }
+        nhanMoDan(this)
+    }
+
+    /** Nhan: chi doi alpha 1.0 -> 0.6 (miuix_theme_icon_pressed_alpha), khong ripple. */
+    private fun nhanMoDan(v: View, thuong: Float = 1f, nhan: Float = 0.6f) {
+        v.setOnTouchListener { _, su ->
+            when (su.actionMasked) {
+                MotionEvent.ACTION_DOWN -> v.animate().alpha(nhan).setDuration(80).start()
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> v.animate().alpha(thuong).setDuration(200).start()
+            }
+            false
         }
     }
 
@@ -272,6 +536,7 @@ class SuaGhiChuActivity : Activity() {
         // dang trong do bi xoa sach theo.
         thayDauDong(dau, dong, moi)
         oThan.setSelection((viTri + moi.length - dong.length).coerceIn(0, oThan.text.length))
+        trangTriOTick()
     }
 
     private fun thayDauDong(dau: Int, cu: String, moi: String) {
@@ -597,6 +862,12 @@ class SuaGhiChuActivity : Activity() {
         muc += "Màu giấy"
         lam += { hienChonMauGiay() }
 
+        muc += if (ghim) "Bỏ ghim" else "Ghim"
+        lam += {
+            ghim = !ghim
+            Toast.makeText(this, if (ghim) "Đã ghim" else "Bỏ ghim", Toast.LENGTH_SHORT).show()
+        }
+
         muc += if (thuMuc.isEmpty()) "Chuyển vào thư mục…" else "Thư mục: $thuMuc"
         lam += { hienChonThuMuc() }
 
@@ -643,6 +914,7 @@ class SuaGhiChuActivity : Activity() {
             .setItems(ten) { _, chon ->
                 thuMuc = if (chon == 0) "" else ds[chon - 1]
                 oChan.text = nhanChan(goc)
+                capNhatChip()
             }
             .show()
     }
@@ -865,32 +1137,58 @@ class SuaGhiChuActivity : Activity() {
 
     // ------------------------------------------------------------ tien ich
 
+    /**
+     * Nen man soan: theme mac dinh cua ban goc la v8_theme_bg_color = #FFFFFF /
+     * #000000 (KHONG phai mau the #242424); co chon mau giay thi theo mau do.
+     */
     private fun toMau() {
-        val nenGiay = MauGhiChu.nen(mauNen, mau)
+        val nenGiay = if (mauNen == 0) (if (mau.toi) 0xFF000000.toInt() else 0xFFFFFFFF.toInt())
+            else MauGhiChu.nen(mauNen, mau)
         nen.setBackgroundColor(nenGiay)
-        window.statusBarColor = nenGiay
-        nen.findViewWithTag<ImageButton>("nut_ghim")?.setColorFilter(
-            if (ghim) mau.nhan else mau.chuChinh,
-        )
     }
 
+    /**
+     * "19 tháng 8  21:47" — ngay (FORMAT_SHOW_DATE) + HAI dau cach + gio, dung
+     * NoteInfoController.updateDataTime cua ban goc. Nhac nho (neu co) noi sau
+     * bang vach dung.
+     */
     private fun nhanChan(g: GhiChu?): String {
-        val phan = ArrayList<String>()
-        phan += NgayVN.nhanDanhSach(g?.ngaySua ?: System.currentTimeMillis())
-        if (thuMuc.isNotEmpty()) phan += thuMuc
-        nhacLuc?.let { phan += "Nhắc " + NgayVN.nhanDanhSach(it) }
-        return phan.joinToString("  ·  ")
+        val luc = g?.ngaySua ?: System.currentTimeMillis()
+        val t = java.time.Instant.ofEpochMilli(luc).atZone(java.time.ZoneId.systemDefault())
+        val chu = StringBuilder()
+        chu.append(t.dayOfMonth).append(" tháng ").append(t.monthValue)
+        if (t.year != java.time.LocalDate.now().year) chu.append(", ").append(t.year)
+        chu.append("  ").append(NgayVN.gioPhut(luc))
+        nhacLuc?.let { chu.append("  ·  Nhắc ").append(NgayVN.nhanDanhSach(it)) }
+        return chu.toString()
     }
 
+    /** Nut icon thanh tren: 40dp (v12_notes_edit_header_ic_size), icon 24dp, khong ripple. */
     private fun nutAnh(anh: Int, ten: String, bam: () -> Unit): ImageButton =
         ImageButton(this).apply {
             setImageResource(anh)
-            setColorFilter(mau.chuChinh)
+            setColorFilter(if (mau.toi) 0xFFFFFFFF.toInt() else 0xFF000000.toInt())
             contentDescription = ten
             background = null
-            setPadding(dp(10), dp(10), dp(10), dp(10))
-            layoutParams = LinearLayout.LayoutParams(dp(44), dp(44))
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            setPadding(dp(8), dp(8), dp(8), dp(8))
+            layoutParams = LinearLayout.LayoutParams(dp(40), dp(40))
             setOnClickListener { bam() }
+            nhanMoDan(this)
+        }
+
+    /** Nut ky tu 40dp cho nhom phai thanh tren (chia se / mau / them / xong). */
+    private fun nutChuNho(ky: String, ten: String, bam: () -> Unit): TextView =
+        TextView(this).apply {
+            text = ky
+            contentDescription = ten
+            gravity = Gravity.CENTER
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
+            setTextColor(if (mau.toi) 0xFFFFFFFF.toInt() else 0xFF000000.toInt())
+            layoutParams = LinearLayout.LayoutParams(dp(40), dp(40))
+            isClickable = true
+            setOnClickListener { bam() }
+            nhanMoDan(this)
         }
 
     /** Nut dinh dang, chinh no hien dung kieu ma no ap — `B` in dam, `I` nghieng. */
