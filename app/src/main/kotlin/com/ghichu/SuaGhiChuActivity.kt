@@ -82,6 +82,9 @@ class SuaGhiChuActivity : Activity() {
         window.navigationBarColor = 0
         window.decorView.systemUiVisibility = if (mau.toi) 0 else
             View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+        window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(
+            if (mau.toi) 0xFF000000.toInt() else 0xFFFFFFFF.toInt(),
+        ))
 
         nen = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         nen.addView(dungThanhTren())

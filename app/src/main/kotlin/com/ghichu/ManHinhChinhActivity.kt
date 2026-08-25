@@ -97,6 +97,9 @@ class ManHinhChinhActivity : Activity() {
         window.navigationBarColor = 0
         window.decorView.systemUiVisibility = if (mau.toi) 0 else
             View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+        // Nen cua so = nen trang, khong thi luc mo app chop trang mot cai truoc
+        // khi noi dung ve xong (windowBackground cua theme la trang tinh).
+        window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(mau.nen))
 
         goc = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -355,6 +358,7 @@ class ManHinhChinhActivity : Activity() {
         val hop = FrameLayout(this)
 
         luoi = LuoiSoLe(this)
+        luoi.datThanhCuon(mau.toi)
         luoi.khiCuon = { t -> thuGonTieuDe(t) }
         hop.addView(luoi, FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT,

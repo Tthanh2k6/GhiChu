@@ -48,7 +48,6 @@ class LuoiSoLe(context: Context) : ScrollView(context) {
     private var choXep: List<View> = emptyList()
 
     init {
-        isVerticalScrollBarEnabled = false
         overScrollMode = OVER_SCROLL_ALWAYS
         clipChildren = false
         clipToPadding = false
@@ -57,6 +56,24 @@ class LuoiSoLe(context: Context) : ScrollView(context) {
             leftMargin = dp(12)
         })
         addView(hang, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+    }
+
+    /**
+     * Thanh cuon kieu miuix (docs/SPEC-GOC.md, muc thanh cuon): thumb 4dp bo tron
+     * han, cach mep phai 4dp, mau #1A000000 sang / #33FFFFFF toi, tu mo dan sau
+     * khi ngung cuon (fade mac dinh cua khung — ban goc khong doi thoi gian).
+     */
+    fun datThanhCuon(toi: Boolean) {
+        val thumb = android.graphics.drawable.GradientDrawable().apply {
+            cornerRadius = dp(40).toFloat()
+            setColor(if (toi) 0x33FFFFFF else 0x1A000000)
+            setSize(dp(4), dp(4))
+        }
+        verticalScrollbarThumbDrawable = android.graphics.drawable.InsetDrawable(thumb, 0, 0, dp(4), 0)
+        scrollBarSize = dp(8)
+        isVerticalScrollBarEnabled = true
+        isScrollbarFadingEnabled = true
+        scrollBarStyle = SCROLLBARS_INSIDE_OVERLAY
     }
 
     /** Khoang trong duoi cung, de the cuoi khong bi nut them / thanh tab che. */
