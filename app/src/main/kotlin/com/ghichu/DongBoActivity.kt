@@ -137,11 +137,13 @@ class DongBoActivity : Activity() {
         )
     }
 
+    /** Tieu de lon kieu miuix: 32sp thuong (miuix_font_size_title1), khong dam. */
     private fun tieuDe(chu: String) = TextView(this).apply {
         text = chu
         setTextColor(mau.chuChinh)
-        setTextSize(TypedValue.COMPLEX_UNIT_SP, 26f)
-        setPadding(0, 0, 0, dp(10))
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, 32f)
+        typeface = android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.NORMAL)
+        setPadding(0, dp(4), 0, dp(10))
     }
 
     private fun chuChinh(chu: String) = TextView(this).apply {

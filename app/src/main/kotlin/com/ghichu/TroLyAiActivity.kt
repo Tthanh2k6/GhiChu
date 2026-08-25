@@ -106,7 +106,7 @@ class TroLyAiActivity : Activity() {
             }
         }
 
-        goc.addView(thanhTren(), LinearLayout.LayoutParams(MATCH, dp(52)))
+        goc.addView(thanhTren(), LinearLayout.LayoutParams(MATCH, dp(56)))
 
         khungTin = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -257,21 +257,28 @@ class TroLyAiActivity : Activity() {
             .show()
     }
 
-    private fun thanhTren(): View = LinearLayout(this).apply {
-        orientation = LinearLayout.HORIZONTAL
-        gravity = Gravity.CENTER_VERTICAL
-        setPadding(dp(4), 0, dp(8), 0)
-
-        addView(nutChu("☰") { moNganKeo() })
+    /**
+     * Thanh tren theo mau man phu cua miuix (docs/SPEC-GOC.md): cao 56dp, tieu de
+     * 20sp medium CAN GIUA, nut hai ben la ky tu mau chu chinh, alpha 0.8.
+     */
+    private fun thanhTren(): View = FrameLayout(this).apply {
         addView(
             TextView(this@TroLyAiActivity).apply {
                 text = "Trợ lý AI"
                 setTextColor(mau.chuChinh)
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
+                typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
             },
-            LinearLayout.LayoutParams(0, WRAP, 1f),
+            FrameLayout.LayoutParams(WRAP, WRAP).apply { gravity = Gravity.CENTER },
         )
-        addView(nutChu("⚙") { hienCaiDat() })
+        addView(
+            nutChu("☰") { moNganKeo() }.apply { setTextColor(mau.chuChinh); alpha = 0.8f },
+            FrameLayout.LayoutParams(WRAP, MATCH).apply { gravity = Gravity.START; leftMargin = dp(8) },
+        )
+        addView(
+            nutChu("⚙") { hienCaiDat() }.apply { setTextColor(mau.chuChinh); alpha = 0.8f },
+            FrameLayout.LayoutParams(WRAP, MATCH).apply { gravity = Gravity.END; rightMargin = dp(8) },
+        )
     }
 
     private fun thanhNhap(): View = LinearLayout(this).apply {

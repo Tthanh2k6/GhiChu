@@ -46,16 +46,16 @@ class CaiDatGiaoDienActivity : Activity() {
 
         goc.addView(
             TextView(this).apply {
-                text = "Giao diện Lịch trình"
+                text = "Giao diện"
                 setTextColor(mau.chuChinh)
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 26f)
-                setPadding(0, 0, 0, dp(6))
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 32f)
+                typeface = android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.NORMAL)
+                setPadding(0, dp(4), 0, dp(10))
             },
         )
         goc.addView(
             TextView(this).apply {
-                text = "Áp dụng cho màn Lịch trình, Đồng bộ và Trợ lý AI. " +
-                    "Phần Ghi chú vẫn theo giao diện của app."
+                text = "Sáng, tối hoặc theo hệ thống — áp dụng cho toàn bộ ứng dụng."
                 setTextColor(mau.chuPhu)
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
                 setLineSpacing(0f, 1.25f)
