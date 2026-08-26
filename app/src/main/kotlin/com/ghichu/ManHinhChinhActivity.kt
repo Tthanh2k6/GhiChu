@@ -731,7 +731,7 @@ class ManHinhChinhActivity : Activity() {
     private fun chuyenDaChon() {
         val ds = kho.thuMucKemSo().map { it.first }
         val ten = (listOf("Không thuộc thư mục nào") + ds).toTypedArray()
-        AlertDialog.Builder(this, mau.themeHopThoai)
+        HopThoai(this, mau)
             .setTitle("Chuyển vào thư mục")
             .setItems(ten) { _, chon ->
                 val dich = if (chon == 0) "" else ds[chon - 1]
@@ -745,8 +745,9 @@ class ManHinhChinhActivity : Activity() {
     private fun xoaDaChon() {
         val n = dangChon.size
         if (thungRac) {
-            AlertDialog.Builder(this, mau.themeHopThoai)
+            HopThoai(this, mau)
                 .setMessage("Xoá vĩnh viễn $n ghi chú? Không thể hoàn tác.")
+                .nguyHiem()
                 .setNegativeButton("Huỷ", null)
                 .setPositiveButton("Xoá") { _, _ ->
                     for (id in dangChon) kho.xoaHan(id)
@@ -763,7 +764,7 @@ class ManHinhChinhActivity : Activity() {
     }
 
     private fun hienHopThungRac(g: GhiChu) {
-        AlertDialog.Builder(this, mau.themeHopThoai)
+        HopThoai(this, mau)
             .setTitle(g.tieuDeHien().ifBlank { "Ghi chú" })
             .setItems(arrayOf("Khôi phục", "Xoá vĩnh viễn")) { _, chon ->
                 if (chon == 0) kho.khoiPhuc(g.id) else kho.xoaHan(g.id)
@@ -794,7 +795,7 @@ class ManHinhChinhActivity : Activity() {
         ten += "Thư mục mới…"
         lam += { hienThemThuMuc() }
 
-        AlertDialog.Builder(this, mau.themeHopThoai)
+        HopThoai(this, mau)
             .setTitle("Thư mục")
             .setItems(ten.toTypedArray()) { _, chon -> lam[chon]() }
             .show()
@@ -805,7 +806,7 @@ class ManHinhChinhActivity : Activity() {
             hint = "Tên thư mục"
             isSingleLine = true
         }
-        AlertDialog.Builder(this, mau.themeHopThoai)
+        HopThoai(this, mau)
             .setTitle("Thư mục mới")
             .setView(o)
             .setNegativeButton("Huỷ", null)
@@ -854,7 +855,7 @@ class ManHinhChinhActivity : Activity() {
     }
 
     private fun hienDatMatKhau() {
-        AlertDialog.Builder(this, mau.themeHopThoai)
+        HopThoai(this, mau)
             .setTitle("Đặt mật khẩu riêng tư")
             .setMessage(KhoaRiengTu.canhBao)
             .setNegativeButton("Huỷ", null)
@@ -887,7 +888,7 @@ class ManHinhChinhActivity : Activity() {
             inputType = android.text.InputType.TYPE_CLASS_TEXT or
                 android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
         }
-        AlertDialog.Builder(this, mau.themeHopThoai)
+        HopThoai(this, mau)
             .setTitle(tieuDe)
             .setView(o)
             .setNegativeButton("Huỷ", null)
@@ -906,7 +907,7 @@ class ManHinhChinhActivity : Activity() {
 
     private fun hienCaiDat() {
         val muc = arrayOf("Giao diện", "Đồng bộ tài khoản", "Khoá API Gemini")
-        AlertDialog.Builder(this, mau.themeHopThoai)
+        HopThoai(this, mau)
             .setTitle("Cài đặt")
             .setItems(muc) { _, chon ->
                 when (chon) {
@@ -927,7 +928,7 @@ class ManHinhChinhActivity : Activity() {
             isSingleLine = true
             setText(Gemini.khoa)
         }
-        AlertDialog.Builder(this, mau.themeHopThoai)
+        HopThoai(this, mau)
             .setTitle("Khoá API Gemini")
             .setView(o)
             .setNegativeButton("Huỷ", null)

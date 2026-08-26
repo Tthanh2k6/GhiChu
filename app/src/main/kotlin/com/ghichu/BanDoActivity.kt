@@ -117,7 +117,7 @@ class BanDoActivity : Activity() {
             hint = "Nội dung nhánh"
             setSelection(text.length)
         }
-        AlertDialog.Builder(this, mau.themeHopThoai)
+        HopThoai(this, mau)
             .setTitle("Nhánh")
             .setView(o)
             .setNegativeButton("Huỷ", null)
@@ -138,8 +138,9 @@ class BanDoActivity : Activity() {
         val soCon = nut.demNut() - 1
         val hoi = if (soCon > 0) "Xoá nhánh này và $soCon nhánh con?" else "Xoá nhánh này?"
 
-        AlertDialog.Builder(this, mau.themeHopThoai)
+        HopThoai(this, mau)
             .setMessage(hoi)
+            .nguyHiem()
             .setNegativeButton("Huỷ", null)
             .setPositiveButton("Xoá") { _, _ ->
                 val cha = banDo.goc.chaCua(nut)

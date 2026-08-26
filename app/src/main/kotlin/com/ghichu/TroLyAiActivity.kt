@@ -246,7 +246,7 @@ class TroLyAiActivity : Activity() {
     }
 
     private fun hoiXoaHoiThoai(id: Long, tieuDe: String) {
-        android.app.AlertDialog.Builder(this, mau.themeHopThoai)
+        android.app.HopThoai(this, mau)
             .setTitle(tieuDe.ifBlank { "Cuộc trò chuyện" })
             .setMessage("Xoá cuộc trò chuyện này?")
             .setNegativeButton("Huỷ", null)
@@ -586,7 +586,7 @@ class TroLyAiActivity : Activity() {
             setPadding(0, dp(16), 0, dp(8))
             isClickable = true
             setOnClickListener {
-                AlertDialog.Builder(this@TroLyAiActivity)
+                HopThoai(this@TroLyAiActivity, mau)
                     .setTitle("Chọn model")
                     .setItems(Gemini.MODEL.toTypedArray()) { _, i ->
                         Gemini.model = Gemini.MODEL[i]
@@ -597,7 +597,7 @@ class TroLyAiActivity : Activity() {
         }
         than.addView(oModel)
 
-        AlertDialog.Builder(this)
+        HopThoai(this, mau)
             .setTitle("Trợ lý AI")
             .setView(than)
             .setPositiveButton("Lưu") { _, _ ->

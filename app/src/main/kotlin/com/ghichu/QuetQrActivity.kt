@@ -491,14 +491,14 @@ class QuetQrActivity : Activity() {
             "${NgayVN.gioPhut(it.luc)} · ${NgayVN.thangNgan(ngay)}\n${QuetQr.rutGon(it.noiDung)}"
         }.toTypedArray()
 
-        AlertDialog.Builder(this)
+        HopThoai(this, mau)
             .setTitle("Lịch sử quét")
             .setItems(nhan) { _, i ->
                 tamDung = true
                 hienKetQua(ds[i].noiDung)
             }
             .setNeutralButton("Xoá hết") { _, _ ->
-                AlertDialog.Builder(this)
+                HopThoai(this, mau)
                     .setTitle("Xoá hết lịch sử quét?")
                     .setMessage("Không lấy lại được.")
                     .setPositiveButton("Xoá") { _, _ ->

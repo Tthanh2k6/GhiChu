@@ -506,7 +506,7 @@ class SuaGhiChuActivity : Activity() {
             null, 0xFFE05252.toInt(), 0xFFE8A33D.toInt(),
             0xFF34A853.toInt(), 0xFF4A90D9.toInt(), 0xFF9B6DD6.toInt(),
         )
-        AlertDialog.Builder(this, mau.themeHopThoai)
+        HopThoai(this, mau)
             .setTitle("Màu chữ")
             .setItems(ten) { _, chon ->
                 val (dau, cuoi) = vungAp()
@@ -894,13 +894,13 @@ class SuaGhiChuActivity : Activity() {
             }
         }
 
-        AlertDialog.Builder(this, mau.themeHopThoai)
+        HopThoai(this, mau)
             .setItems(muc.toTypedArray()) { _, chon -> lam[chon]() }
             .show()
     }
 
     private fun hienChonMauGiay() {
-        AlertDialog.Builder(this, mau.themeHopThoai)
+        HopThoai(this, mau)
             .setTitle("Màu giấy")
             .setItems(MauGhiChu.TEN) { _, chon ->
                 mauNen = chon
@@ -912,7 +912,7 @@ class SuaGhiChuActivity : Activity() {
     private fun hienChonThuMuc() {
         val ds = kho.thuMucKemSo().map { it.first }
         val ten = (listOf("Không thuộc thư mục nào") + ds).toTypedArray()
-        AlertDialog.Builder(this, mau.themeHopThoai)
+        HopThoai(this, mau)
             .setTitle("Thư mục")
             .setItems(ten) { _, chon ->
                 thuMuc = if (chon == 0) "" else ds[chon - 1]
@@ -1033,7 +1033,7 @@ class SuaGhiChuActivity : Activity() {
             Toast.makeText(this, "Ghi chú trống", Toast.LENGTH_SHORT).show()
             return
         }
-        AlertDialog.Builder(this, mau.themeHopThoai)
+        HopThoai(this, mau)
             .setTitle("Chia sẻ / xuất")
             .setItems(arrayOf("Văn bản", "Ảnh PNG", "PDF")) { _, chon ->
                 when (chon) {
