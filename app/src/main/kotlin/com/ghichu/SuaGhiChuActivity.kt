@@ -158,9 +158,6 @@ class SuaGhiChuActivity : Activity() {
             gravity = Gravity.CENTER_VERTICAL
         }
         nhomXem.addView(nutChuNho("↗", "Chia sẻ") { hienXuat() })
-        nhomXem.addView(nutChuNho("◐", "Màu giấy") { hienChonMauGiay() }.also {
-            (it.layoutParams as LinearLayout.LayoutParams).leftMargin = dp(12)
-        })
         nutThemMenu = nutChuNho("⋯", "Thêm") { hienThem() }.also {
             (it.layoutParams as LinearLayout.LayoutParams).leftMargin = dp(12)
         }
@@ -992,15 +989,6 @@ class SuaGhiChuActivity : Activity() {
         menu.hien(nutThemMenu)
     }
 
-    private fun hienChonMauGiay() {
-        HopThoai(this, mau)
-            .setTitle("Màu giấy")
-            .setItems(MauGhiChu.TEN) { _, chon ->
-                mauNen = chon
-                toMau()
-            }
-            .show()
-    }
 
     private fun hienChonThuMuc() {
         val ds = kho.thuMucKemSo().map { it.first }
