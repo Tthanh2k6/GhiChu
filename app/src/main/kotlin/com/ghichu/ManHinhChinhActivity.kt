@@ -108,6 +108,7 @@ class ManHinhChinhActivity : Activity() {
         goc.addView(dungThanhTren())
         goc.addView(dungTieuDeLon())
         goc.addView(dungOTim())
+        goc.addView(dungHangChip())
         goc.addView(dungLuoi(), LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f,
         ))
@@ -351,6 +352,101 @@ class ManHinhChinhActivity : Activity() {
         hang.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(56))
         return hang
     }
+
+    // ------------------------------------------------------------ chip thu muc
+
+    private lateinit var hangChip: android.widget.HorizontalScrollView
+    private lateinit var dayChip: LinearLayout
+
+    /**
+     * Hang chip thu muc ghim tren luoi (sticky_view cua ban goc) — so do o
+     * docs/SPEC-GOC-chip.md: hang cao 52dp (chip 40dp + tren 4dp + duoi 8dp), le
+     * ngang 12dp, chip cach nhau 12dp, KHONG mo mep. "Tất cả" dau, thu muc nguoi
+     * dung giua, "Chưa phân loại" cuoi. An khi chi co mot chip hoac dang o trang
+     * rieng tu / thung rac — dung nhu `setFolderVisible` cua ban goc.
+     */
+    private fun dungHangChip(): View {
+        dayChip = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        hangChip = android.widget.HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled = false
+            overScrollMode = View.OVER_SCROLL_NEVER
+            setPadding(dp(12), dp(4), dp(12), dp(8))
+            clipToPadding = false
+            addView(dayChip)
+            visibility = View.GONE
+        }
+        return hangChip
+    }
+
+    private fun napChip() {
+        val ds = kho.thuMucKemSo().map { it.first }
+        if (thungRac || riengTu || ds.isEmpty()) {
+            hangChip.visibility = View.GONE
+            return
+        }
+        hangChip.visibility = View.VISIBLE
+        dayChip.removeAllViews()
+
+        val muc = ArrayList<Pair<String, String?>>()
+        muc += "Tất cả" to null
+        for (t in ds) muc += t to t
+        if (kho.soLuong("") > 0) muc += "Chưa phân loại" to ""
+
+        var chipChon: View? = null
+        for ((i, m) in muc.withIndex()) {
+            val (ten, gia) = m
+            val chon = gia == thuMuc
+            val chip = chipThuMuc(ten, chon) { doiCho(gia, false) }
+            if (chon) chipChon = chip
+            dayChip.addView(chip, LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, dp(40),
+            ).apply { if (i < muc.size - 1) rightMargin = dp(12) })
+        }
+        // Chip dang chon luon lo ra — smoothScrollToPosition cua ban goc.
+        chipChon?.let { c -> hangChip.post { hangChip.smoothScrollTo((c.left - dp(12)).coerceAtLeast(0), 0) } }
+    }
+
+    /**
+     * Mot chip: minHeight 40dp, dem ngang 10dp, bo goc 12dp, chu 14sp. Thuong:
+     * nen #FFFFFF vien 1dp #24FFFFFF (sang) / trong suot vien #33FFFFFF (toi), chu
+     * #99000000 / #80FFFFFF. Chon: nen #0F000000 / #24FFFFFF khong vien, chu
+     * #000000 / #CCFFFFFF dam.
+     */
+    private fun chipThuMuc(ten: String, chon: Boolean, bam: () -> Unit): TextView =
+        TextView(this).apply {
+            text = ten
+            isSingleLine = true
+            ellipsize = android.text.TextUtils.TruncateAt.END
+            maxWidth = dp(227)
+            includeFontPadding = false
+            gravity = Gravity.CENTER
+            setPadding(dp(10), 0, dp(10), 0)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            typeface = Typeface.create("sans-serif-medium", if (chon) Typeface.BOLD else Typeface.NORMAL)
+            setTextColor(
+                when {
+                    chon && mau.toi -> 0xCCFFFFFF.toInt()
+                    chon -> 0xFF000000.toInt()
+                    mau.toi -> 0x80FFFFFF.toInt()
+                    else -> 0x99000000.toInt()
+                },
+            )
+            background = GradientDrawable().apply {
+                cornerRadius = dpF(12f)
+                if (chon) {
+                    setColor(if (mau.toi) 0x24FFFFFF else 0x0F000000)
+                } else {
+                    setColor(if (mau.toi) 0x00000000 else 0xFFFFFFFF.toInt())
+                    setStroke(dp(1), if (mau.toi) 0x33FFFFFF else 0x24FFFFFF)
+                }
+            }
+            isClickable = true
+            setOnClickListener { bam() }
+            nhanMoDan(this)
+        }
 
     // ------------------------------------------------------------ luoi
 
@@ -608,6 +704,8 @@ class ManHinhChinhActivity : Activity() {
         thanhChon.findViewWithTag<TextView>("nhan_chon")?.text = "Đã chọn ${dangChon.size} mục"
         if (co == truoc) return
 
+        hangChip.alpha = if (co) 0.5f else 1f
+        for (i in 0 until dayChip.childCount) dayChip.getChildAt(i).isEnabled = !co
         if (co) {
             thanhChon.visibility = View.VISIBLE
             thanhChon.animate().alpha(1f).setDuration(300).setStartDelay(50).start()
@@ -850,6 +948,7 @@ class ManHinhChinhActivity : Activity() {
         val conLai = duLieu.map { it.id }.toHashSet()
         the.keys.retainAll(conLai)
         luoi.datThe(duLieu.map { dungThe(it) })
+        napChip()
 
         val ten = when {
             riengTu -> "Riêng tư"
