@@ -617,7 +617,10 @@ class ManHinhChinhActivity : Activity() {
 
         luoi = LuoiSoLe(this)
         luoi.datThanhCuon(mau.toi)
-        luoi.khiCuon = { t -> thuGonTieuDe(t) }
+        luoi.khiCuon = { t ->
+            thuGonTieuDe(t)
+            if (::kinhTab.isInitialized) kinhTab.invalidate()
+        }
         hop.addView(luoi, FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT,
         ))
@@ -697,12 +700,19 @@ class ManHinhChinhActivity : Activity() {
      * 12sp, padding tren 8dp duoi 16dp. Chon = den/trang, khong chon = mo hon.
      * KHONG phai vang.
      */
+    private lateinit var kinhTab: KinhMo
+
     private fun dungThanhDuoi(): View {
         val hop = FrameLayout(this)
 
+        // Lop kinh mo ve noi dung phia duoi thanh tab (blur that tren Android 12+).
+        kinhTab = KinhMo(this, mau) { if (::khungNoiDung.isInitialized) khungNoiDung else null }
+        hop.addView(kinhTab, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT,
+        ))
+
         thanhDuoi = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(mau.nenThanhTab)
         }
         thanhDuoi.addView(View(this).apply { setBackgroundColor(mau.vachThanh) },
             LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, (0.5f * md.density).toInt().coerceAtLeast(1)))
@@ -721,7 +731,6 @@ class ManHinhChinhActivity : Activity() {
         // de len thanh tab.
         thanhDuoiChon = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(mau.nenThanhTab)
             visibility = View.GONE
         }
         thanhDuoiChon.addView(View(this).apply { setBackgroundColor(mau.vachThanh) },
@@ -883,6 +892,7 @@ class ManHinhChinhActivity : Activity() {
         } else {
             nap()
         }
+        kinhTab.postInvalidate()
     }
 
     /**
@@ -1270,6 +1280,7 @@ class ManHinhChinhActivity : Activity() {
             if (tim.isBlank()) lopMoTim.alpha = 1f
         }
 
+        if (::kinhTab.isInitialized) kinhTab.postInvalidate()
         oTrong.visibility = if (duLieu.isEmpty()) View.VISIBLE else View.GONE
         oTrong.findViewWithTag<TextView>("chu_trong")?.text = when {
             tim.isNotBlank() -> "Không có ghi chú nào ở đây"
