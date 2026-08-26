@@ -76,7 +76,7 @@ class ManLichTrinh(private val context: Context) {
             onChon = { lan -> SuaSuKien(context, db, lan.suKien, null) { nap() }.hien() }
             onNgayTraiDoi = { ngay ->
                 ngayTrai = ngay
-                datTieuDe?.invoke(NgayVN.thangNgan(ngay))
+                datTieuDe?.invoke(NgayVN.nhanThang(ngay))
             }
         }
         goc.addView(tuanView, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
@@ -233,7 +233,7 @@ class ManLichTrinh(private val context: Context) {
         oHomNay.text = "${homNay.dayOfMonth}"
         // Doc `ngayTrai` cua minh chu khong hoi TuanView: luc goi lan dau view chua
         // do xong, be rong con bang 0 nen no tra ve ngay dau dai cuon (nam ngoai).
-        datTieuDe?.invoke(NgayVN.thangNgan(ngayTrai))
+        datTieuDe?.invoke(NgayVN.nhanThang(ngayTrai))
         capNhatSapToi(ds)
     }
 

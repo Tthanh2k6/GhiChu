@@ -153,6 +153,8 @@ class LichTrinhWidget : AppWidgetProvider() {
 
     private fun moApp(context: Context): PendingIntent? {
         val mo = context.packageManager.getLaunchIntentForPackage(context.packageName) ?: return null
+        // Widget Lich trinh thi mo thang tab Lich trinh, khong dung o tab Ghi chu.
+        mo.putExtra(ManHinhChinhActivity.KHOA_TAB, 1)
         mo.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         return PendingIntent.getActivity(
             context, 0, mo, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
