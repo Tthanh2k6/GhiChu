@@ -31,10 +31,17 @@ object NoiDungGhiChu {
         "&nbsp;" to " ",
     )
 
-    /** Bo het the, tra ve chu tron — dung cho cot `plain_text` de tim kiem. */
+    private val DA_TICK = Regex("^[ 	]*<input[^>]*checked[ 	]*=[ 	]*\"true\"")
+
+    /**
+     * Bo het the, tra ve chu tron — dung cho cot `plain_text` de tim kiem va cho
+     * ban xem truoc tren the. Dong DA TICK duoc them "√ " phia truoc, dung nhu
+     * `NoteSchema.REPLACE_MODERN_CHECK` cua ban goc — the ghi chu vi the cho thay
+     * viec nao da xong.
+     */
     fun chuTron(markup: String): String =
         markup.lineSequence()
-            .map { boThoat(THE.replace(it, "")).trim() }
+            .map { (if (DA_TICK.containsMatchIn(it)) "√ " else "") + boThoat(THE.replace(it, "")).trim() }
             .joinToString("\n")
             .replace(Regex("\n{3,}"), "\n\n")
             .trim()

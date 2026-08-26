@@ -92,6 +92,16 @@ class ManHinhChinhActivity : Activity() {
 
     private var demDuoi = 0
 
+    /** 0 = Ghi chu, 1 = Lich trinh. Thanh tab LUON hien — hai tab la hai vung noi dung. */
+    private var tabHienTai = 0
+    private lateinit var khungGhiChu: LinearLayout
+    private lateinit var khungNoiDung: FrameLayout
+    private var khungLich: View? = null
+    private var manLich: ManLichTrinh? = null
+    private val cacTab = ArrayList<Pair<ImageView, TextView>>()
+    private lateinit var nutQr: View
+    private lateinit var nutThuMuc: View
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         mau = BangMau.cua(this)
@@ -113,11 +123,21 @@ class ManHinhChinhActivity : Activity() {
         }
         goc.addView(dungThanhTren())
         goc.addView(dungTieuDeLon())
-        goc.addView(dungOTim())
-        goc.addView(dungHangChip())
-        goc.addView(dungLuoi(), LinearLayout.LayoutParams(
+
+        // Vung noi dung: hai tab la hai khung chong nhau, doi bang visibility —
+        // thanh tren + thanh tab dung yen, dung nhu Navigator cua ban goc.
+        khungGhiChu = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        khungGhiChu.addView(dungOTim())
+        khungGhiChu.addView(dungHangChip())
+        khungGhiChu.addView(dungLuoi(), LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f,
         ))
+        val noiDung = FrameLayout(this)
+        noiDung.addView(khungGhiChu, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT,
+        ))
+        goc.addView(noiDung, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
+        khungNoiDung = noiDung
         goc.addView(dungThanhDuoi())
 
         val nen = FrameLayout(this).apply {
@@ -141,6 +161,8 @@ class ManHinhChinhActivity : Activity() {
             insets
         }
         setContentView(nen)
+        // Mo thang tab theo yeu cau (widget Lich trinh, kiem thu): doi layout xong roi doi.
+        if (intent.getIntExtra(KHOA_TAB, 0) == 1) nen.post { chuyenTab(1) }
 
         xinQuyenThongBao()
 
@@ -184,8 +206,13 @@ class ManHinhChinhActivity : Activity() {
             recreate()
             return
         }
-        nap()
+        if (tabHienTai == 1) manLich?.nap() else nap()
         dongBoNgam()
+    }
+
+    override fun onDestroy() {
+        manLich?.dong()
+        super.onDestroy()
     }
 
     /**
@@ -235,10 +262,12 @@ class ManHinhChinhActivity : Activity() {
             setPadding(0, 0, dp(20) - dp(9), 0)
         }
         // Thu tu ban chot: QR nam BEN TRAI hai nut thu muc va cai dat.
-        phai.addView(nutAnh(R.drawable.ghichu_ic_qr, "Quét QR") {
+        nutQr = nutAnh(R.drawable.ghichu_ic_qr, "Quét QR") {
             startActivity(Intent(this, QuetQrActivity::class.java))
-        })
-        phai.addView(nutAnh(R.drawable.ic_thu_muc, "Thư mục") { hienThuMuc() })
+        }
+        nutThuMuc = nutAnh(R.drawable.ic_thu_muc, "Thư mục") { hienThuMuc() }
+        phai.addView(nutQr)
+        phai.addView(nutThuMuc)
         phai.addView(nutAnh(R.drawable.ic_cai_dat, "Cài đặt") { hienCaiDat() })
         thanhTren.addView(phai, FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.WRAP_CONTENT, dp(56),
@@ -626,13 +655,10 @@ class ManHinhChinhActivity : Activity() {
             orientation = LinearLayout.HORIZONTAL
             setPadding(0, dp(8), 0, dp(16))
         }
-        hangTab.addView(tabDuoi(R.drawable.ic_ghi_chu, "Ghi chú", true) { })
-        hangTab.addView(tabDuoi(R.drawable.ic_lich, "Lịch trình", false) {
-            startActivity(Intent(this, LichTrinhActivity::class.java))
-        })
-        hangTab.addView(tabDuoi(R.drawable.ic_ai, "Trợ lý", false) {
-            startActivity(Intent(this, TroLyAiActivity::class.java))
-        })
+        // Ban goc co dung HAI tab (Ghi chu / Nhiem vu); o day Nhiem vu thay bang
+        // Lich trinh theo yeu cau. KHONG co tab Tro ly — AI vao bang giu nut +.
+        hangTab.addView(tabDuoi(R.drawable.ic_ghi_chu, "Ghi chú", true) { chuyenTab(0) })
+        hangTab.addView(tabDuoi(R.drawable.ic_lich, "Lịch trình", false) { chuyenTab(1) })
         thanhDuoi.addView(hangTab)
         hop.addView(thanhDuoi)
 
@@ -719,22 +745,78 @@ class ManHinhChinhActivity : Activity() {
             setOnClickListener { bam() }
         }
         val to = if (dangO) mau.tabChon else mau.tabThuong
-        cot.addView(ImageView(this).apply {
+        val icon = ImageView(this).apply {
             setImageResource(anh)
             setColorFilter(to)
-        }, LinearLayout.LayoutParams(dp(28), dp(28)))
+        }
+        cot.addView(icon, LinearLayout.LayoutParams(dp(28), dp(28)))
         // LinearLayout doc cap MATCH_PARENT mac dinh cho con -> chu can TRAI ca cot;
         // phai tu can giua, khong thi nhan lech han khoi icon.
-        cot.addView(TextView(this).apply {
+        val nhan = TextView(this).apply {
             text = ten
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
             setTextColor(to)
             isSingleLine = true
             gravity = Gravity.CENTER_HORIZONTAL
-        })
+        }
+        cot.addView(nhan)
+        if (!vang) cacTab += icon to nhan
         nhanMoDan(cot)
         return cot.also {
             it.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+    }
+
+    /**
+     * Chuyen tab. Thanh tren va thanh tab dung yen; chi vung noi dung doi.
+     *
+     * Tab Lich trinh: tieu de lon = thang dang xem (ManLichTrinh bao qua
+     * `datTieuDe`), an o tim / chip / nut them cua ghi chu (Lich trinh co nut +
+     * rieng o thanh duoi cua no), an nut QR va thu muc — ban goc o tab thu hai chi
+     * con banh rang.
+     */
+    private fun chuyenTab(i: Int) {
+        if (i == tabHienTai) return
+        if (dangChon.isNotEmpty()) thoatChon()
+        if (dangTim) thoatCheDoTim()
+        tabHienTai = i
+
+        for ((k, cap) in cacTab.withIndex()) {
+            val to = if (k == i) mau.tabChon else mau.tabThuong
+            cap.first.setColorFilter(to)
+            cap.second.setTextColor(to)
+        }
+
+        if (i == 1 && khungLich == null) {
+            val man = ManLichTrinh(this)
+            man.datTieuDe = { chu ->
+                if (tabHienTai == 1) {
+                    tieuDeLon.text = chu
+                    tieuDeNho.text = chu
+                }
+            }
+            val v = man.taoView()
+            manLich = man
+            khungLich = v
+            khungNoiDung.addView(v, FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT,
+            ))
+        }
+
+        val laLich = i == 1
+        khungGhiChu.visibility = if (laLich) View.GONE else View.VISIBLE
+        khungLich?.visibility = if (laLich) View.VISIBLE else View.GONE
+        nutThem.visibility = if (laLich) View.GONE else View.VISIBLE
+        nutQr.visibility = if (laLich) View.GONE else View.VISIBLE
+        nutThuMuc.visibility = if (laLich) View.GONE else View.VISIBLE
+        tieuDeLon.alpha = 1f
+        tieuDeNho.alpha = 0f
+
+        if (laLich) {
+            manLich?.nap()
+            manLich?.dongBoNgam()
+        } else {
+            nap()
         }
     }
 
@@ -1059,14 +1141,15 @@ class ManHinhChinhActivity : Activity() {
     // ------------------------------------------------------------ cai dat
 
     private fun hienCaiDat() {
-        val muc = arrayOf("Giao diện", "Đồng bộ tài khoản", "Khoá API Gemini")
+        val muc = arrayOf("Trợ lý AI", "Giao diện", "Đồng bộ tài khoản", "Khoá API Gemini")
         HopThoai(this, mau)
             .setTitle("Cài đặt")
             .setItems(muc) { _, chon ->
                 when (chon) {
-                    0 -> startActivity(Intent(this, CaiDatGiaoDienActivity::class.java))
-                    1 -> startActivity(Intent(this, DongBoActivity::class.java))
-                    2 -> hienKhoaGemini()
+                    0 -> startActivity(Intent(this, TroLyAiActivity::class.java))
+                    1 -> startActivity(Intent(this, CaiDatGiaoDienActivity::class.java))
+                    2 -> startActivity(Intent(this, DongBoActivity::class.java))
+                    3 -> hienKhoaGemini()
                 }
             }
             .show()
@@ -1111,8 +1194,10 @@ class ManHinhChinhActivity : Activity() {
             thuMuc!!.isEmpty() -> "Chưa xếp thư mục"
             else -> thuMuc!!
         }
-        tieuDeLon.text = ten
-        tieuDeNho.text = ten
+        if (tabHienTai == 0) {
+            tieuDeLon.text = ten
+            tieuDeNho.text = ten
+        }
 
         if (dangTim) {
             // Co chu thi bo lop mo de thay ket qua; xoa het chu thi phu lai.
@@ -1164,11 +1249,18 @@ class ManHinhChinhActivity : Activity() {
         }
     }
 
+    companion object {
+        /** Extra: 0 = Ghi chu, 1 = Lich trinh. */
+        const val KHOA_TAB = "tab"
+    }
+
     override fun onBackPressed() {
         // Back quay ve mot buoc chu khong thoat app ngay — dung y ban da chot.
         when {
             dangChon.isNotEmpty() -> thoatChon()
             dangTim -> thoatCheDoTim()
+            // Back o tab thu hai thi ve tab dau, chua thoat app — dung y ban chot.
+            tabHienTai != 0 -> chuyenTab(0)
             tim.isNotBlank() -> oTim.setText("")
             riengTu || thungRac || thuMuc != null -> doiCho(null, false)
             else -> super.onBackPressed()
