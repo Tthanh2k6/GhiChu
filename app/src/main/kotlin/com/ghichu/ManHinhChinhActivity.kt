@@ -166,8 +166,10 @@ class ManHinhChinhActivity : Activity() {
             val thanh = insets.getInsets(WindowInsets.Type.systemBars())
             // Thanh tren om luon thanh trang thai; noi dung chua cho no (inset + 56dp).
             caoThanhTren = thanh.top + dp(56)
-            khungThanhTren.setPadding(0, thanh.top, 0, 0)
+            // Kinh cao dung = inset + 56dp; thanh 56dp va o tim day xuong duoi inset.
             kinhTren.layoutParams = (kinhTren.layoutParams as FrameLayout.LayoutParams).apply { height = caoThanhTren }
+            (thanhTren.layoutParams as? FrameLayout.LayoutParams)?.let { it.topMargin = thanh.top; thanhTren.layoutParams = it }
+            (hangTim.layoutParams as? FrameLayout.LayoutParams)?.let { it.topMargin = thanh.top; hangTim.layoutParams = it }
             luoi.dauTrang.setPadding(0, caoThanhTren, 0, 0)
             oTrong.setPadding(dp(24), caoThanhTren + dp(154), dp(24), 0)
             khungLich?.setPadding(0, caoThanhTren, 0, caoThanhTab)
@@ -262,7 +264,14 @@ class ManHinhChinhActivity : Activity() {
 
     // ------------------------------------------------------------ thanh tren
 
-    /** Khung ngoai: kinh mo phia sau + thanh 56dp; om luon thanh trang thai. */
+    /**
+     * Khung ngoai: kinh mo phia sau + thanh 56dp; om luon thanh trang thai.
+     *
+     * KHONG dat padding tren cho khung nay — padding cha se CONG vao chieu cao kinh
+     * (kinh cao caoThanhTren) lam kinh dư ra dung mot khoang bang thanh trang thai,
+     * phu de len dau tieu de. Thay vao do, thanh 56dp va o tim tu dat topMargin =
+     * inset trang thai (cap lai o listener inset).
+     */
     private fun dungKhungThanhTren(): View {
         khungThanhTren = FrameLayout(this)
         kinhTren = KinhMo(
