@@ -139,33 +139,31 @@ class SuaSuKien(
 
         val cuon = ScrollView(context).apply { addView(than) }
 
-        val hopThoai = AlertDialog.Builder(context, bangMau.themeHopThoai)
+        // HopThoai.giuMo(): nut "Luu" / "Xoa" khong tu dong hop — chi dong khi du
+        // lieu hop le hoac nguoi dung xac nhan xoa.
+        HopThoai(context, bangMau)
             .setTitle(if (goc == null) "Sự kiện mới" else "Sửa sự kiện")
             .setView(cuon)
-            .setPositiveButton("Lưu", null)
+            .giuMo()
             .setNegativeButton("Huỷ", null)
-            .apply { if (goc != null) setNeutralButton("Xoá", null) }
-            .create()
-
-        hopThoai.show()
-
-        // Gan sau khi show() de nut "Luu" khong tu dong dong khi du lieu chua hop le.
-        hopThoai.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-            if (luu()) hopThoai.dismiss()
-        }
-        if (goc != null) {
-            hopThoai.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
-                AlertDialog.Builder(context, bangMau.themeHopThoai)
-                    .setMessage("Xoá sự kiện này?")
-                    .setPositiveButton("Xoá") { _, _ ->
-                        db.xoa(goc.id)
-                        hopThoai.dismiss()
-                        khiXong()
+            .apply {
+                if (goc != null) {
+                    setNeutralButton("Xoá") { hop, _ ->
+                        HopThoai(context, bangMau)
+                            .setMessage("Xoá sự kiện này?")
+                            .nguyHiem()
+                            .setNegativeButton("Huỷ", null)
+                            .setPositiveButton("Xoá") { _, _ ->
+                                db.xoa(goc.id)
+                                hop.dismiss()
+                                khiXong()
+                            }
+                            .show()
                     }
-                    .setNegativeButton("Huỷ", null)
-                    .show()
+                }
             }
-        }
+            .setPositiveButton("Lưu") { hop, _ -> if (luu()) hop.dismiss() }
+            .show()
     }
 
     private fun luu(): Boolean {
@@ -315,7 +313,7 @@ class SuaSuKien(
     }
 
     private fun chonTuDanhSach(tieuDe: String, muc: Array<String>, dangChon: Int, khiChon: (Int) -> Unit) {
-        AlertDialog.Builder(context, bangMau.themeHopThoai)
+        HopThoai(context, bangMau)
             .setTitle(tieuDe)
             .setSingleChoiceItems(muc, dangChon) { d, i ->
                 khiChon(i)

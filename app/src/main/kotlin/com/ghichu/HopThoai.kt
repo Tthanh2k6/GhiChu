@@ -66,6 +66,11 @@ class HopThoai(private val ctx: Context, private val mau: BangMau) {
     private var khiGiua: DialogInterface.OnClickListener? = null
     private var nguyHiem = false
     private var huyDuoc = true
+    /** Nut chinh / giua KHONG tu dong hop — ben goi tu `dismiss()` khi du lieu hop le. */
+    private var giuMo = false
+    private var chonMot: Array<out CharSequence>? = null
+    private var dangChon = -1
+    private var khiChonMot: DialogInterface.OnClickListener? = null
 
     private val xanh = if (mau.toi) 0xFF4788FF.toInt() else 0xFF3482FF.toInt()
     private val nenPanel = if (mau.toi) 0xFF242424.toInt() else 0xFFFFFFFF.toInt()
@@ -88,6 +93,14 @@ class HopThoai(private val ctx: Context, private val mau: BangMau) {
         apply { chuGiua = s; khiGiua = lam }
     /** Nut chinh la hanh dong pha huy (xoa han) — chu do tren nen thuong, khong xanh. */
     fun nguyHiem(): HopThoai = apply { nguyHiem = true }
+    /** Bam nut chinh/giua khong tu dong hop (de kiem du lieu truoc); nut phu van dong. */
+    fun giuMo(): HopThoai = apply { giuMo = true }
+    /**
+     * Danh sach chon MOT (Widget.AlertDialogListItem.SingleChoice): muc 56dp, dem
+     * ngang 28dp, chu 17sp medium; muc dang chon chu XANH + dau tick 28dp xanh o cuoi.
+     */
+    fun setSingleChoiceItems(ds: Array<out CharSequence>, chon: Int, lam: DialogInterface.OnClickListener?): HopThoai =
+        apply { chonMot = ds; dangChon = chon; khiChonMot = lam }
     fun setCancelable(co: Boolean): HopThoai = apply { huyDuoc = co }
 
     fun show(): Dialog = create().also { it.show() }
@@ -141,6 +154,41 @@ class HopThoai(private val ctx: Context, private val mau: BangMau) {
             ).apply { leftMargin = dp(24); rightMargin = dp(24); bottomMargin = dp(16) })
         }
 
+        chonMot?.let { ds ->
+            val cuon = ScrollView(ctx)
+            val cot = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
+            for ((i, chu) in ds.withIndex()) {
+                val la = i == dangChon
+                val hang = LinearLayout(ctx).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    minimumHeight = dp(56)
+                    setPadding(dp(28), (16.5f * md.density).toInt(), dp(28), (16.5f * md.density).toInt())
+                    isClickable = true
+                    nhan(this)
+                    setOnClickListener { khiChonMot?.onClick(hop, i) }
+                }
+                hang.addView(TextView(ctx).apply {
+                    text = chu
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
+                    typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+                    setTextColor(if (la) xanh else chuTieuDe)
+                }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+                hang.addView(TextView(ctx).apply {
+                    text = if (la) "\u2713" else ""
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
+                    typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+                    setTextColor(xanh)
+                    gravity = Gravity.CENTER
+                }, LinearLayout.LayoutParams(dp(28), dp(28)))
+                cot.addView(hang, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+            }
+            cuon.addView(cot)
+            panel.addView(cuon, LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f,
+            ).apply { bottomMargin = dp(16) })
+        }
+
         muc?.let { ds ->
             val cuon = ScrollView(ctx)
             val cot = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
@@ -169,7 +217,7 @@ class HopThoai(private val ctx: Context, private val mau: BangMau) {
 
         // Nhom nut: dem ngang 24dp, cach noi dung 8dp; hai nut xep ngang cach 12dp.
         // Danh sach (ActionSheet) thi chi co nut Huy rieng ben duoi.
-        val coPhu = chuPhu != null || (muc != null && chuChinh == null)
+        val coPhu = chuPhu != null || ((muc != null || chonMot != null) && chuChinh == null)
         val soNut = (if (coPhu) 1 else 0) + (if (chuChinh != null) 1 else 0) + (if (chuGiua != null) 1 else 0)
         if (soNut > 0) {
             // <= 2 nut: xep NGANG, phu trai chinh phai, cach 12dp.
@@ -177,7 +225,7 @@ class HopThoai(private val ctx: Context, private val mau: BangMau) {
             val doc = soNut >= 3
             val hang = LinearLayout(ctx).apply {
                 orientation = if (doc) LinearLayout.VERTICAL else LinearLayout.HORIZONTAL
-                setPadding(dp(24), if (muc != null) 0 else dp(8), dp(24), 0)
+                setPadding(dp(24), if (muc != null || chonMot != null) 0 else dp(8), dp(24), 0)
             }
             fun lp(dau: Boolean) = if (doc) {
                 LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(50)).apply { if (!dau) topMargin = dp(12) }
@@ -189,11 +237,11 @@ class HopThoai(private val ctx: Context, private val mau: BangMau) {
                 khiPhu?.onClick(hop, DialogInterface.BUTTON_NEGATIVE)
             } else null
             val nutGiua = chuGiua?.let { c -> nut(c, kieu = 0) {
-                hop.dismiss()
+                if (!giuMo) hop.dismiss()
                 khiGiua?.onClick(hop, DialogInterface.BUTTON_NEUTRAL)
             } }
             val nutChinh = chuChinh?.let { c -> nut(c, kieu = if (nguyHiem) 2 else 1) {
-                hop.dismiss()
+                if (!giuMo) hop.dismiss()
                 khiChinh?.onClick(hop, DialogInterface.BUTTON_POSITIVE)
             } }
             val thuTu = if (doc) listOf(nutChinh, nutGiua, nutPhu) else listOf(nutPhu, nutGiua, nutChinh)
