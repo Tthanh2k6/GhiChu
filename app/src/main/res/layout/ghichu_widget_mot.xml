@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Widget 2x2: MOT ghi chu duoc chi dinh. Nen kinh (xem GhiChuWidget ve chu "kinh").
+  KHONG dung the <View> tron — RemoteViews khong nhan; vach dung TextView 1dp.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/ghichu_mot_goc"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/ghichu_kinh_toi"
+    android:padding="14dp">
+
+    <TextView
+        android:id="@+id/ghichu_mot_tieu_de"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="#F2F2F2"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:maxLines="2"
+        android:ellipsize="end" />
+
+    <TextView
+        android:id="@+id/ghichu_mot_than"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:textColor="#CCFFFFFF"
+        android:textSize="13sp"
+        android:lineSpacingMultiplier="1.15"
+        android:paddingTop="6dp"
+        android:maxLines="6"
+        android:ellipsize="end" />
+
+    <TextView
+        android:id="@+id/ghichu_mot_gio"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="#99FFFFFF"
+        android:textSize="11sp"
+        android:maxLines="1"
+        android:ellipsize="end" />
+</LinearLayout>

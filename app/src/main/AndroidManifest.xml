@@ -109,6 +109,33 @@
         </receiver>
 
         <!--
+          Man chon ghi chu cho widget 2x2 (mot ghi chu). exported=true la BAT BUOC:
+          he thong widget goi man nay khi nguoi dung keo widget ra.
+        -->
+        <activity
+            android:name="com.ghichu.ChonGhiChuWidgetActivity"
+            android:exported="true"
+            android:excludeFromRecents="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
+        <!--
+          Widget 2x2: mot ghi chu duoc chi dinh. Bam vao mo dung ghi chu do.
+        -->
+        <receiver
+            android:name="com.ghichu.GhiChuMotWidget"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/ghichu_widget_mot_info" />
+        </receiver>
+
+        <!--
           Widget Ghi chu (nen kinh). `exported="true"` la BAT BUOC voi moi widget:
           he thong goi broadcast tu tien trinh khac vao day.
         -->

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Widget 2x2 mot ghi chu. `configure` = man chon ghi chu, hien khi vua keo widget
+  ra. updatePeriodMillis = 0: noi dung chi doi khi ghi chu doi (code tu bao cap nhat).
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="110dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="2"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/ghichu_widget_mot"
+    android:previewLayout="@layout/ghichu_widget_mot"
+    android:configure="com.ghichu.ChonGhiChuWidgetActivity"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen" />
