@@ -723,11 +723,14 @@ class ManHinhChinhActivity : Activity() {
             setImageResource(anh)
             setColorFilter(to)
         }, LinearLayout.LayoutParams(dp(28), dp(28)))
+        // LinearLayout doc cap MATCH_PARENT mac dinh cho con -> chu can TRAI ca cot;
+        // phai tu can giua, khong thi nhan lech han khoi icon.
         cot.addView(TextView(this).apply {
             text = ten
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
             setTextColor(to)
             isSingleLine = true
+            gravity = Gravity.CENTER_HORIZONTAL
         })
         nhanMoDan(cot)
         return cot.also {
