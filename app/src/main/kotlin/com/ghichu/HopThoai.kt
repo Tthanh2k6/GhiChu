@@ -122,14 +122,24 @@ class HopThoai(private val ctx: Context, private val mau: BangMau) {
         }
 
         tieuDe?.let {
+            // Hop dang DANH SACH (ActionSheet cua ban goc): tieu de la dong "message"
+            // 14sp XAM #99000000 / #80FFFFFF — nho va nhat hon han cac muc 17sp den,
+            // de khong bi tuong la mot muc. Hop thuong: tieu de 18sp medium den.
+            val laDanhSach = muc != null || chonMot != null
             panel.addView(TextView(ctx).apply {
                 text = it
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
-                typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
-                setTextColor(chuTieuDe)
+                if (laDanhSach) {
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                    setTextColor(if (mau.toi) 0x80FFFFFF.toInt() else 0x99000000.toInt())
+                    setPadding(dp(24), 0, dp(24), dp(16))
+                } else {
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+                    typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+                    setTextColor(chuTieuDe)
+                    setPadding(dp(36), 0, dp(36), dp(16))
+                }
                 gravity = Gravity.CENTER
                 maxLines = 4
-                setPadding(dp(36), 0, dp(36), dp(16))
             })
         }
 

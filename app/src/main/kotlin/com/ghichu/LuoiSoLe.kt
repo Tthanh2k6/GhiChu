@@ -45,6 +45,14 @@ class LuoiSoLe(context: Context) : ScrollView(context) {
     /** Goi moi khi cuon, kem vi tri cuon doc (px). Dung de thu gon tieu de lon. */
     var khiCuon: ((Int) -> Unit)? = null
 
+    /**
+     * Dau trang: nam TRONG vung cuon, tren hai cot — tieu de lon + hang chip cua
+     * man chinh. Cuon len la no troi di, dung nhu header co gian cua
+     * NestedHeaderLayout ban goc.
+     */
+    val dauTrang = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
+    private val than = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
+
     private var choXep: List<View> = emptyList()
 
     init {
@@ -55,7 +63,9 @@ class LuoiSoLe(context: Context) : ScrollView(context) {
         hang.addView(cot[1], LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
             leftMargin = dp(12)
         })
-        addView(hang, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        than.addView(dauTrang, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+        than.addView(hang, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+        addView(than, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
     }
 
     /**

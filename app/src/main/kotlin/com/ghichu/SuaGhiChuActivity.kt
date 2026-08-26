@@ -98,7 +98,10 @@ class SuaGhiChuActivity : Activity() {
             // Lay cai LON hon giua ban phim va thanh dieu huong, khong cong don:
             // ban phim bat len la no da phu len thanh dieu huong roi, cong ca hai
             // thi thua ra mot khoang trong bang chieu cao thanh.
-            view.setPadding(0, thanh.top, 0, maxOf(thanh.bottom, banPhim.bottom))
+            // Dem duoi dat vao CHINH toolbar (navi_placeholder cua ban goc) de nen
+            // toolbar om luon vung thanh dieu huong — khong con khoang ho duoi toolbar.
+            view.setPadding(0, thanh.top, 0, 0)
+            thanhCongCu.setPadding(0, 0, 0, maxOf(thanh.bottom, banPhim.bottom))
             // Ban phim mo = dang SOAN: ban goc doi nhom nut phai sang undo/redo/done.
             // O day: an share/mau/them, hien "Xong" (khong co undo/redo — EditText
             // cua khung khong mo API undo).
@@ -372,6 +375,7 @@ class SuaGhiChuActivity : Activity() {
     }
 
     private lateinit var bangDinhDang: View
+    private lateinit var thanhCongCu: LinearLayout
 
     /**
      * Thanh cong cu duoi (small_screen_mode_tool_group): hang 60dp
@@ -402,8 +406,8 @@ class SuaGhiChuActivity : Activity() {
             startActivity(Intent(this, TroLyAiActivity::class.java))
         })
         trai.addView(nutToolbar(R.drawable.ic_ghi_am, "Ghi âm") { ghiAm() })
-        trai.addView(nutToolbar(R.drawable.ic_anh, "Chèn ảnh") { chonAnh() })
-        trai.addView(nutToolbar(R.drawable.ic_goc_ban_do, "Bản đồ tư duy") { chenBanDo() })
+        // Nguoi dung chot (2026-08-26): KHONG can chen anh va so do tu duy — bo hai
+        // nut khoi toolbar. Ma doc/ve noi dung cu van giu de ghi chu co san khong hong.
         trai.addView(nutToolbar(R.drawable.ic_o_tick, "Ô tick") { doiOTick() })
         hang.addView(trai, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 0.81f))
 
@@ -445,6 +449,7 @@ class SuaGhiChuActivity : Activity() {
             visibility = View.GONE
         }
         cot.addView(bangDinhDang)
+        thanhCongCu = cot
         return cot
     }
 

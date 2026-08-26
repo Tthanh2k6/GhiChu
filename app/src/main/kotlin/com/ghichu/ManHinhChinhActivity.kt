@@ -101,6 +101,11 @@ class ManHinhChinhActivity : Activity() {
     private val cacTab = ArrayList<Pair<ImageView, TextView>>()
     private lateinit var nutQr: View
     private lateinit var nutThuMuc: View
+    private lateinit var nutTim: View
+    /** Ban ghim cua hang chip: hien khi tieu de lon da cuon khuat. */
+    private lateinit var hangChipGhim: android.widget.HorizontalScrollView
+    private lateinit var dayChipGhim: LinearLayout
+    private lateinit var tieuDeLich: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -122,14 +127,21 @@ class ManHinhChinhActivity : Activity() {
             setBackgroundColor(mau.nen)
         }
         goc.addView(dungThanhTren())
-        goc.addView(dungTieuDeLon())
 
         // Vung noi dung: hai tab la hai khung chong nhau, doi bang visibility —
         // thanh tren + thanh tab dung yen, dung nhu Navigator cua ban goc.
+        //
+        // Header cua tab Ghi chu (tieu de lon + hang chip) nam TRONG vung cuon
+        // cua luoi: cuon len la tieu de troi di, tieu de nho o thanh 56dp hien
+        // dan — dung co che NestedHeaderLayout cua ban goc. Hang chip co them mot
+        // ban GHIM ngoai vung cuon, hien khi tieu de da khuat (stickyView).
         khungGhiChu = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         khungGhiChu.addView(dungOTim())
-        khungGhiChu.addView(dungHangChip())
-        khungGhiChu.addView(dungLuoi(), LinearLayout.LayoutParams(
+        khungGhiChu.addView(dungHangChipGhim())
+        val luoiView = dungLuoi()
+        luoi.dauTrang.addView(dungTieuDeLon())
+        luoi.dauTrang.addView(dungHangChip())
+        khungGhiChu.addView(luoiView, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f,
         ))
         val noiDung = FrameLayout(this)
@@ -262,10 +274,13 @@ class ManHinhChinhActivity : Activity() {
             setPadding(0, 0, dp(20) - dp(9), 0)
         }
         // Thu tu ban chot: QR nam BEN TRAI hai nut thu muc va cai dat.
+        // Thanh tim kiem AN theo yeu cau; kinh lup o day mo che do tim.
+        nutTim = nutAnh(R.drawable.ic_tim, "Tìm kiếm") { vaoCheDoTim() }
         nutQr = nutAnh(R.drawable.ghichu_ic_qr, "Quét QR") {
             startActivity(Intent(this, QuetQrActivity::class.java))
         }
         nutThuMuc = nutAnh(R.drawable.ic_thu_muc, "Thư mục") { hienThuMuc() }
+        phai.addView(nutTim)
         phai.addView(nutQr)
         phai.addView(nutThuMuc)
         phai.addView(nutAnh(R.drawable.ic_cai_dat, "Cài đặt") { hienCaiDat() })
@@ -414,6 +429,8 @@ class ManHinhChinhActivity : Activity() {
             bottomMargin = dp(4)
         })
         hang.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(56))
+        // Nguoi dung chot: an thanh tim; chi hien khi vao che do tim.
+        hang.visibility = View.GONE
         hangTim = hang
         return hang
     }
@@ -428,9 +445,13 @@ class ManHinhChinhActivity : Activity() {
     private fun vaoCheDoTim() {
         if (dangTim) return
         dangTim = true
-        for (v in listOf(thanhTren, tieuDeLon, hangChip)) {
+        for (v in listOf<View>(thanhTren, luoi.dauTrang)) {
             v.animate().alpha(0f).setDuration(200).withEndAction { if (dangTim) v.visibility = View.GONE }.start()
         }
+        hangChipGhim.visibility = View.GONE
+        hangTim.visibility = View.VISIBLE
+        hangTim.alpha = 0f
+        hangTim.animate().alpha(1f).setDuration(200).start()
         nutThem.visibility = View.GONE
         nutHuyTim.visibility = View.VISIBLE
         nutHuyTim.translationX = dpF(80f)
@@ -449,11 +470,11 @@ class ManHinhChinhActivity : Activity() {
         oTim.clearFocus()
         getSystemService(android.view.inputmethod.InputMethodManager::class.java)
             ?.hideSoftInputFromWindow(oTim.windowToken, 0)
-        for (v in listOf(thanhTren, tieuDeLon, hangChip)) {
-            if (v === hangChip && hangChip.tag == "an") continue
+        for (v in listOf<View>(thanhTren, luoi.dauTrang)) {
             v.visibility = View.VISIBLE
             v.animate().alpha(1f).setDuration(200).start()
         }
+        hangTim.animate().alpha(0f).setDuration(200).withEndAction { hangTim.visibility = View.GONE }.start()
         nutThem.visibility = View.VISIBLE
         nutHuyTim.animate().translationX(dpF(80f)).setDuration(300)
             .withEndAction { nutHuyTim.visibility = View.GONE }.start()
@@ -490,34 +511,57 @@ class ManHinhChinhActivity : Activity() {
         return hangChip
     }
 
+    /** Ban ghim cua hang chip: giong het hang trong header, nam ngoai vung cuon. */
+    private fun dungHangChipGhim(): View {
+        dayChipGhim = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        hangChipGhim = android.widget.HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled = false
+            overScrollMode = View.OVER_SCROLL_NEVER
+            setPadding(dp(12), dp(4), dp(12), dp(8))
+            clipToPadding = false
+            setBackgroundColor(mau.nen)
+            addView(dayChipGhim)
+            visibility = View.GONE
+        }
+        return hangChipGhim
+    }
+
     private fun napChip() {
         val ds = kho.thuMucKemSo().map { it.first }
         if (thungRac || riengTu || ds.isEmpty()) {
             hangChip.visibility = View.GONE
+            hangChipGhim.visibility = View.GONE
             hangChip.tag = "an"
             return
         }
         hangChip.tag = null
         if (!dangTim) hangChip.visibility = View.VISIBLE
-        dayChip.removeAllViews()
 
         val muc = ArrayList<Pair<String, String?>>()
         muc += "Tất cả" to null
         for (t in ds) muc += t to t
         if (kho.soLuong("") > 0) muc += "Chưa phân loại" to ""
 
-        var chipChon: View? = null
-        for ((i, m) in muc.withIndex()) {
-            val (ten, gia) = m
-            val chon = gia == thuMuc
-            val chip = chipThuMuc(ten, chon) { doiCho(gia, false) }
-            if (chon) chipChon = chip
-            dayChip.addView(chip, LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, dp(40),
-            ).apply { if (i < muc.size - 1) rightMargin = dp(12) })
+        // Hai ban giong het: mot trong header cuon, mot ghim ngoai vung cuon.
+        for ((day, hang) in listOf(dayChip to hangChip, dayChipGhim to hangChipGhim)) {
+            day.removeAllViews()
+            var chipChon: View? = null
+            for ((i, m) in muc.withIndex()) {
+                val (ten, gia) = m
+                val chon = gia == thuMuc
+                val chip = chipThuMuc(ten, chon) { doiCho(gia, false) }
+                if (chon) chipChon = chip
+                day.addView(chip, LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT, dp(40),
+                ).apply { if (i < muc.size - 1) rightMargin = dp(12) })
+            }
+            // Chip dang chon luon lo ra — smoothScrollToPosition cua ban goc.
+            chipChon?.let { c -> hang.post { hang.smoothScrollTo((c.left - dp(12)).coerceAtLeast(0), 0) } }
         }
-        // Chip dang chon luon lo ra — smoothScrollToPosition cua ban goc.
-        chipChon?.let { c -> hangChip.post { hangChip.smoothScrollTo((c.left - dp(12)).coerceAtLeast(0), 0) } }
+        thuGonTieuDe(luoi.scrollY)
     }
 
     /**
@@ -614,10 +658,14 @@ class ManHinhChinhActivity : Activity() {
      * cross-fade theo alpha, dung nhu hai container title cua miuix ActionBar.
      */
     private fun thuGonTieuDe(t: Int) {
+        if (tabHienTai != 0 || dangTim) return
         val cao = tieuDeLon.height.coerceAtLeast(1)
         val f = (t.toFloat() / cao).coerceIn(0f, 1f)
         tieuDeLon.alpha = 1f - f
         tieuDeNho.alpha = f
+        // Tieu de da cuon khuat -> hang chip ghim thay cho hang trong header.
+        val ghim = t >= cao && hangChip.tag != "an"
+        hangChipGhim.visibility = if (ghim) View.VISIBLE else View.GONE
     }
 
     private fun dungThe(g: GhiChu): TheGhiChu {
@@ -789,16 +837,24 @@ class ManHinhChinhActivity : Activity() {
 
         if (i == 1 && khungLich == null) {
             val man = ManLichTrinh(this)
-            man.datTieuDe = { chu ->
-                if (tabHienTai == 1) {
-                    tieuDeLon.text = chu
-                    tieuDeNho.text = chu
-                }
+            // Tab Lich trinh co tieu de lon rieng, cung kieu 32sp, nam tren lich.
+            tieuDeLich = TextView(this).apply {
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 32f)
+                typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+                setTextColor(mau.chuChinh)
+                setPadding(dp(46), dp(4), dp(46), dp(10))
+                isSingleLine = true
             }
-            val v = man.taoView()
+            man.datTieuDe = { chu ->
+                tieuDeLich.text = chu
+                if (tabHienTai == 1) tieuDeNho.text = chu
+            }
+            val cot = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+            cot.addView(tieuDeLich)
+            cot.addView(man.taoView(), LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
             manLich = man
-            khungLich = v
-            khungNoiDung.addView(v, FrameLayout.LayoutParams(
+            khungLich = cot
+            khungNoiDung.addView(cot, FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT,
             ))
         }
@@ -809,8 +865,9 @@ class ManHinhChinhActivity : Activity() {
         nutThem.visibility = if (laLich) View.GONE else View.VISIBLE
         nutQr.visibility = if (laLich) View.GONE else View.VISIBLE
         nutThuMuc.visibility = if (laLich) View.GONE else View.VISIBLE
-        tieuDeLon.alpha = 1f
-        tieuDeNho.alpha = 0f
+        nutTim.visibility = if (laLich) View.GONE else View.VISIBLE
+        tieuDeNho.alpha = if (laLich) 0f else (tieuDeNho.alpha)
+        if (!laLich) thuGonTieuDe(luoi.scrollY)
 
         if (laLich) {
             manLich?.nap()
