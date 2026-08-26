@@ -1,7 +1,6 @@
 package com.ghichu
 
 import android.app.Activity
-import android.app.AlertDialog
 import android.content.Intent
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
@@ -702,12 +701,12 @@ class SuaGhiChuActivity : Activity() {
             text = KhoGhiAm.doDai(0)
         }
 
-        val hop = AlertDialog.Builder(this, mau.themeHopThoai)
+        val hop = HopThoai(this, mau)
             .setTitle("Đang ghi âm")
             .setView(dongHo)
             .setCancelable(false)
             .setNegativeButton("Huỷ") { _, _ -> phien.bo() }
-            .setPositiveButton("Xong", null)
+            .setPositiveButton("Xong") { _, _ -> xongGhiAm(phien) }
             .create()
 
         // Dong ho tu dem. Dung `Handler` cua luong chinh chu khong luong rieng:
@@ -728,13 +727,8 @@ class SuaGhiChuActivity : Activity() {
         }
         chinh.postDelayed(dem, 500)
 
+        // KHONG dat setOnShowListener o day: HopThoai da dung no cho hoat anh truot len.
         hop.setOnDismissListener { chinh.removeCallbacks(dem) }
-        hop.setOnShowListener {
-            hop.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                hop.dismiss()
-                xongGhiAm(phien)
-            }
-        }
         hop.show()
     }
 
