@@ -91,6 +91,7 @@ class ManHinhChinhActivity : Activity() {
     private lateinit var nutThem: View
 
     private var demDuoi = 0
+    private var caoThanhTab = 0
 
     /** 0 = Ghi chu, 1 = Lich trinh. Thanh tab LUON hien — hai tab la hai vung noi dung. */
     private var tabHienTai = 0
@@ -150,11 +151,15 @@ class ManHinhChinhActivity : Activity() {
         ))
         goc.addView(noiDung, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
         khungNoiDung = noiDung
-        goc.addView(dungThanhDuoi())
 
+        // Thanh tab nam DE LEN noi dung (khong chiem cho trong cot): luoi cuon xuyen
+        // ben duoi thanh kinh hoi trong — nhu blur cua HyperOS.
         val nen = FrameLayout(this).apply {
             setBackgroundColor(mau.nen)
             addView(goc)
+            addView(dungThanhDuoi(), FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT,
+            ).apply { gravity = Gravity.BOTTOM })
             addView(dungNutThem())
         }
         nen.setOnApplyWindowInsetsListener { _, insets ->
@@ -167,9 +172,11 @@ class ManHinhChinhActivity : Activity() {
             // (floating_action_bar_margin_bottom) — luon noi 35dp tren mep thanh tab.
             (nutThem.layoutParams as FrameLayout.LayoutParams).bottomMargin = dp(64) + thanh.bottom + dp(35)
             nutThem.requestLayout()
-            // Luoi cuon xuyen duoi nut them: chua cho the cuoi khong bi che.
-            demDuoi = dp(35) + dp(58) + dp(24)
+            // Luoi cuon xuyen duoi thanh tab + nut them: chua cho the cuoi khong bi che.
+            caoThanhTab = dp(64) + thanh.bottom
+            demDuoi = caoThanhTab + dp(35) + dp(58) + dp(24)
             luoi.datDemDuoi(demDuoi)
+            khungLich?.setPadding(0, 0, 0, caoThanhTab)
             insets
         }
         setContentView(nen)
@@ -695,7 +702,7 @@ class ManHinhChinhActivity : Activity() {
 
         thanhDuoi = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(mau.nen)
+            setBackgroundColor(mau.nenThanhTab)
         }
         thanhDuoi.addView(View(this).apply { setBackgroundColor(mau.vachThanh) },
             LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, (0.5f * md.density).toInt().coerceAtLeast(1)))
@@ -714,7 +721,7 @@ class ManHinhChinhActivity : Activity() {
         // de len thanh tab.
         thanhDuoiChon = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(mau.nen)
+            setBackgroundColor(mau.nenThanhTab)
             visibility = View.GONE
         }
         thanhDuoiChon.addView(View(this).apply { setBackgroundColor(mau.vachThanh) },
@@ -853,6 +860,7 @@ class ManHinhChinhActivity : Activity() {
             cot.addView(tieuDeLich)
             cot.addView(man.taoView(), LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
             manLich = man
+            cot.setPadding(0, 0, 0, caoThanhTab)
             khungLich = cot
             khungNoiDung.addView(cot, FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT,

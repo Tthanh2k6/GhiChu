@@ -52,6 +52,14 @@ class BangMau(val toi: Boolean) {
     /** Tab duoi thuong. goc: navigator_bottom_button_unchecked_color. */
     val tabThuong: Int = if (toi) 0x80FFFFFF.toInt() else 0x66000000.toInt()
 
+    /**
+     * Nen thanh tab duoi. goc: tab_bottom_surface = #F7F7F7 (trung nen trang) nhung
+     * tren HyperOS thanh nay la KINH MO (blur) nen nhin khac nen. App thuong khong
+     * blur duoc — dung trang/den hoi trong, cho noi dung cuon xuyen ben duoi cho ra
+     * chat kinh; de cung mau nen thi thanh mot khoi phang (nguoi dung che).
+     */
+    val nenThanhTab: Int = if (toi) 0xF21C1C1C.toInt() else 0xF2FFFFFF.toInt()
+
     /** Vach 0.5dp tren thanh tab / toolbar. goc: miuix_design_default_color_surface_divider. */
     val vachThanh: Int = if (toi) 0x26FFFFFF else 0x1A000000
 
