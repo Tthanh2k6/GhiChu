@@ -246,7 +246,7 @@ class TroLyAiActivity : Activity() {
     }
 
     private fun hoiXoaHoiThoai(id: Long, tieuDe: String) {
-        android.app.HopThoai(this, mau)
+        HopThoai(this, mau)
             .setTitle(tieuDe.ifBlank { "Cuộc trò chuyện" })
             .setMessage("Xoá cuộc trò chuyện này?")
             .setNegativeButton("Huỷ", null)

@@ -62,6 +62,8 @@ class HopThoai(private val ctx: Context, private val mau: BangMau) {
     private var khiPhu: DialogInterface.OnClickListener? = null
     private var chuChinh: CharSequence? = null
     private var khiChinh: DialogInterface.OnClickListener? = null
+    private var chuGiua: CharSequence? = null
+    private var khiGiua: DialogInterface.OnClickListener? = null
     private var nguyHiem = false
     private var huyDuoc = true
 
@@ -82,6 +84,8 @@ class HopThoai(private val ctx: Context, private val mau: BangMau) {
         apply { chuPhu = s; khiPhu = lam }
     fun setPositiveButton(s: CharSequence, lam: DialogInterface.OnClickListener?): HopThoai =
         apply { chuChinh = s; khiChinh = lam }
+    fun setNeutralButton(s: CharSequence, lam: DialogInterface.OnClickListener?): HopThoai =
+        apply { chuGiua = s; khiGiua = lam }
     /** Nut chinh la hanh dong pha huy (xoa han) — chu do tren nen thuong, khong xanh. */
     fun nguyHiem(): HopThoai = apply { nguyHiem = true }
     fun setCancelable(co: Boolean): HopThoai = apply { huyDuoc = co }
@@ -166,22 +170,38 @@ class HopThoai(private val ctx: Context, private val mau: BangMau) {
         // Nhom nut: dem ngang 24dp, cach noi dung 8dp; hai nut xep ngang cach 12dp.
         // Danh sach (ActionSheet) thi chi co nut Huy rieng ben duoi.
         val coPhu = chuPhu != null || (muc != null && chuChinh == null)
-        if (coPhu || chuChinh != null) {
+        val soNut = (if (coPhu) 1 else 0) + (if (chuChinh != null) 1 else 0) + (if (chuGiua != null) 1 else 0)
+        if (soNut > 0) {
+            // <= 2 nut: xep NGANG, phu trai chinh phai, cach 12dp.
+            // >= 3 nut: xep DOC full be ngang, chinh tren cung (HyperOS > 2), cach 12dp.
+            val doc = soNut >= 3
             val hang = LinearLayout(ctx).apply {
-                orientation = LinearLayout.HORIZONTAL
+                orientation = if (doc) LinearLayout.VERTICAL else LinearLayout.HORIZONTAL
                 setPadding(dp(24), if (muc != null) 0 else dp(8), dp(24), 0)
             }
-            if (coPhu) {
-                hang.addView(nut(chuPhu ?: "Huỷ", kieu = 0) {
-                    hop.dismiss()
-                    khiPhu?.onClick(hop, DialogInterface.BUTTON_NEGATIVE)
-                }, LinearLayout.LayoutParams(0, dp(50), 1f))
+            fun lp(dau: Boolean) = if (doc) {
+                LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(50)).apply { if (!dau) topMargin = dp(12) }
+            } else {
+                LinearLayout.LayoutParams(0, dp(50), 1f).apply { if (!dau) leftMargin = dp(12) }
             }
-            chuChinh?.let { c ->
-                hang.addView(nut(c, kieu = if (nguyHiem) 2 else 1) {
-                    hop.dismiss()
-                    khiChinh?.onClick(hop, DialogInterface.BUTTON_POSITIVE)
-                }, LinearLayout.LayoutParams(0, dp(50), 1f).apply { if (coPhu) leftMargin = dp(12) })
+            val nutPhu = if (coPhu) nut(chuPhu ?: "Huỷ", kieu = 0) {
+                hop.dismiss()
+                khiPhu?.onClick(hop, DialogInterface.BUTTON_NEGATIVE)
+            } else null
+            val nutGiua = chuGiua?.let { c -> nut(c, kieu = 0) {
+                hop.dismiss()
+                khiGiua?.onClick(hop, DialogInterface.BUTTON_NEUTRAL)
+            } }
+            val nutChinh = chuChinh?.let { c -> nut(c, kieu = if (nguyHiem) 2 else 1) {
+                hop.dismiss()
+                khiChinh?.onClick(hop, DialogInterface.BUTTON_POSITIVE)
+            } }
+            val thuTu = if (doc) listOf(nutChinh, nutGiua, nutPhu) else listOf(nutPhu, nutGiua, nutChinh)
+            var dau = true
+            for (n in thuTu) {
+                if (n == null) continue
+                hang.addView(n, lp(dau))
+                dau = false
             }
             panel.addView(hang)
         }
