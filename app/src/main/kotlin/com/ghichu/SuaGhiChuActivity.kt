@@ -121,6 +121,7 @@ class SuaGhiChuActivity : Activity() {
 
     private lateinit var nhomXem: LinearLayout
     private lateinit var nutXong: View
+    private lateinit var nutThemMenu: View
 
     /**
      * Thanh tren 56dp (miuix_appcompat_action_bar_default_height), nen trong suot.
@@ -146,9 +147,10 @@ class SuaGhiChuActivity : Activity() {
         nhomXem.addView(nutChuNho("◐", "Màu giấy") { hienChonMauGiay() }.also {
             (it.layoutParams as LinearLayout.LayoutParams).leftMargin = dp(12)
         })
-        nhomXem.addView(nutChuNho("⋯", "Thêm") { hienThem() }.also {
+        nutThemMenu = nutChuNho("⋯", "Thêm") { hienThem() }.also {
             (it.layoutParams as LinearLayout.LayoutParams).leftMargin = dp(12)
-        })
+        }
+        nhomXem.addView(nutThemMenu)
         thanh.addView(nhomXem)
 
         nutXong = nutChuNho("✓", "Xong") {
@@ -858,34 +860,24 @@ class SuaGhiChuActivity : Activity() {
 
     // ------------------------------------------------------------ hanh dong
 
+    /**
+     * Menu "…" — popup kieu miuix bung ra tu goc tren-phai cua nut (xem [MenuNoi]).
+     * Thu tu lenh theo normal_note_edit_options.xml cua ban goc: Nhắc nhở · Ẩn/Bỏ
+     * ẩn · Chuyển tới · Xóa; them Ghim (ban goc de o thanh tren, o day khong con cho).
+     */
     private fun hienThem() {
-        val muc = ArrayList<String>()
-        val lam = ArrayList<() -> Unit>()
-
-        muc += "Màu giấy"
-        lam += { hienChonMauGiay() }
-
-        muc += if (ghim) "Bỏ ghim" else "Ghim"
-        lam += {
+        val menu = MenuNoi(this, mau)
+        menu.them(if (ghim) "Bỏ ghim" else "Ghim") {
             ghim = !ghim
             Toast.makeText(this, if (ghim) "Đã ghim" else "Bỏ ghim", Toast.LENGTH_SHORT).show()
         }
-
-        muc += if (thuMuc.isEmpty()) "Chuyển vào thư mục…" else "Thư mục: $thuMuc"
-        lam += { hienChonThuMuc() }
-
-        muc += if (nhacLuc == null) "Đặt nhắc nhở…" else "Bỏ nhắc nhở"
-        lam += { if (nhacLuc == null) hienDatNhac() else datNhac(null) }
-
-        muc += if (goc?.riengTu == true) "Bỏ riêng tư" else "Chuyển vào riêng tư"
-        lam += { doiRiengTu() }
-
-        muc += "Chia sẻ / xuất…"
-        lam += { hienXuat() }
-
+        menu.them(if (nhacLuc == null) "Nhắc nhở" else "Bỏ nhắc nhở") {
+            if (nhacLuc == null) hienDatNhac() else datNhac(null)
+        }
+        menu.them(if (goc?.riengTu == true) "Bỏ ẩn" else "Ẩn") { doiRiengTu() }
+        menu.them("Chuyển tới") { hienChonThuMuc() }
         if (id != 0L) {
-            muc += "Chuyển vào thùng rác"
-            lam += {
+            menu.them("Xóa") {
                 kho.boVaoThungRac(id)
                 // Da xoa thi dung de onPause luu lai — luu lai la ghi chu song day.
                 id = 0L
@@ -893,10 +885,7 @@ class SuaGhiChuActivity : Activity() {
                 finish()
             }
         }
-
-        HopThoai(this, mau)
-            .setItems(muc.toTypedArray()) { _, chon -> lam[chon]() }
-            .show()
+        menu.hien(nutThemMenu)
     }
 
     private fun hienChonMauGiay() {

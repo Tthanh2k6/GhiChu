@@ -145,14 +145,18 @@ class TheGhiChu(context: Context) : FrameLayout(context) {
      * @param cheDoChon dang o che do chon nhieu — hien checkbox (ke ca chua tick)
      *   va don hang chan sang trai 40dp nhuong cho, nhu `setBarMargin` cua ban goc.
      */
-    fun gan(g: GhiChu, mau: BangMau, chon: Boolean, cheDoChon: Boolean = chon) {
+    /**
+     * @param toSang tu khoa dang tim — to do #FF4848 (user_query_highlight cua ban
+     *   goc, ca sang lan toi) len moi cho khop trong tieu de va than, khong dam.
+     */
+    fun gan(g: GhiChu, mau: BangMau, chon: Boolean, cheDoChon: Boolean = chon, toSang: String = "") {
         val tieuDe = g.tieuDeHien()
         val than = g.xemTruoc(4)
 
-        oTieuDe.text = tieuDe.ifBlank { "Không có văn bản" }
+        oTieuDe.text = toSang(tieuDe.ifBlank { "Không có văn bản" }, toSang)
         oTieuDe.setTextColor(if (tieuDe.isBlank()) mau.chuMo else mau.chuTheTieuDe)
 
-        oThan.text = than
+        oThan.text = toSang(than, toSang)
         oThan.setTextColor(mau.chuTheThan)
         oThan.visibility = if (than.isBlank()) View.GONE else View.VISIBLE
 
@@ -252,6 +256,20 @@ class TheGhiChu(context: Context) : FrameLayout(context) {
 
     companion object {
         private val THE_ANH = Regex("<img[^>]*src=\"([^\"]+)\"")
+
+        /** ContentUtils.changeHighLight cua ban goc: regex khong phan biet hoa thuong, ForegroundColorSpan. */
+        fun toSang(chu: String, tuKhoa: String): CharSequence {
+            val k = tuKhoa.trim()
+            if (k.isEmpty() || chu.isEmpty()) return chu
+            val ra = android.text.SpannableString(chu)
+            for (m in Regex(Regex.escape(k), RegexOption.IGNORE_CASE).findAll(chu)) {
+                ra.setSpan(
+                    android.text.style.ForegroundColorSpan(0xFFFF4848.toInt()),
+                    m.range.first, m.range.last + 1, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
+                )
+            }
+            return ra
+        }
 
         /**
          * Anh xem truoc, thu nho san, giu trong bo nho de cuon luoi khong giat.
