@@ -79,7 +79,6 @@ class ManHinhChinhActivity : Activity() {
     private lateinit var hangTim: FrameLayout
 
     private lateinit var goc: LinearLayout
-    private lateinit var tieuDeLon: TextView
     private lateinit var tieuDeNho: TextView
     private lateinit var oTim: EditText
     private lateinit var luoi: LuoiSoLe
@@ -105,7 +104,6 @@ class ManHinhChinhActivity : Activity() {
     private val cacTab = ArrayList<Pair<ImageView, TextView>>()
     private lateinit var nutQr: View
     private lateinit var nutThuMuc: View
-    private lateinit var tieuDeLich: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -127,19 +125,15 @@ class ManHinhChinhActivity : Activity() {
             setBackgroundColor(mau.nen)
         }
 
-        // Vung noi dung: hai tab la hai khung chong nhau, doi bang visibility —
-        // thanh tren + thanh tab dung yen, dung nhu Navigator cua ban goc.
-        //
-        // Header cua tab Ghi chu (tieu de lon + thanh tim + hang chip) nam TRONG
-        // vung cuon cua luoi: cuon len la CA header troi di (khong ghim gi), tieu
-        // de nho o thanh 56dp hien dan — nhu NestedHeaderLayout cua ban goc. Thanh
-        // 56dp la kinh mo de len noi dung (ActionBar blur khi noi dung cuon qua).
+        // Nguoi dung chot: KHONG co header cuon. Thanh tren (56dp) la DINH CO DINH
+        // cua trang; hang chip co dinh ngay duoi no. Ca hai la hai hang dau cua cot,
+        // day xuong duoi thanh trang thai bang padding tren cua `goc`.
+        goc.addView(dungKhungThanhTren())
+        goc.addView(dungHangChip())
+
+        // Vung noi dung: hai tab la hai khung chong nhau, doi bang visibility.
         khungGhiChu = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        val luoiView = dungLuoi()
-        luoi.dauTrang.addView(dungTieuDeLon())
-        luoi.dauTrang.addView(dungNutTim())
-        luoi.dauTrang.addView(dungHangChip())
-        khungGhiChu.addView(luoiView, LinearLayout.LayoutParams(
+        khungGhiChu.addView(dungLuoi(), LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f,
         ))
         val noiDung = FrameLayout(this)
@@ -149,30 +143,22 @@ class ManHinhChinhActivity : Activity() {
         goc.addView(noiDung, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
         khungNoiDung = noiDung
 
-        // Thanh tren va thanh tab nam DE LEN noi dung (khong chiem cho trong cot):
-        // noi dung cuon xuyen ben duoi hai tam kinh mo — nhu blur cua HyperOS.
+        // Thanh tab duoi nam DE LEN noi dung (kinh mo). Thanh tren khong con la
+        // overlay — no la hang dau cua cot.
         val nen = FrameLayout(this).apply {
             setBackgroundColor(mau.nen)
             addView(goc)
             addView(dungThanhDuoi(), FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT,
             ).apply { gravity = Gravity.BOTTOM })
-            addView(dungKhungThanhTren(), FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT,
-            ).apply { gravity = Gravity.TOP })
             addView(dungNutThem())
         }
         nen.setOnApplyWindowInsetsListener { _, insets ->
             val thanh = insets.getInsets(WindowInsets.Type.systemBars())
-            // Thanh tren om luon thanh trang thai; noi dung chua cho no (inset + 56dp).
-            caoThanhTren = thanh.top + dp(56)
-            // Kinh cao dung = inset + 56dp; thanh 56dp va o tim day xuong duoi inset.
-            kinhTren.layoutParams = (kinhTren.layoutParams as FrameLayout.LayoutParams).apply { height = caoThanhTren }
-            (thanhTren.layoutParams as? FrameLayout.LayoutParams)?.let { it.topMargin = thanh.top; thanhTren.layoutParams = it }
-            (hangTim.layoutParams as? FrameLayout.LayoutParams)?.let { it.topMargin = thanh.top; hangTim.layoutParams = it }
-            luoi.dauTrang.setPadding(0, caoThanhTren, 0, 0)
-            oTrong.setPadding(dp(24), caoThanhTren + dp(154), dp(24), 0)
-            khungLich?.setPadding(0, caoThanhTren, 0, caoThanhTab)
+            // Ca cot day xuong duoi thanh trang thai — thanh tren la dinh trang.
+            goc.setPadding(0, thanh.top, 0, 0)
+            oTrong.setPadding(dp(24), dp(120), dp(24), 0)
+            khungLich?.setPadding(0, 0, 0, caoThanhTab)
             // Thanh tab: 64dp + thanh dieu huong he thong ben duoi.
             thanhDuoi.setPadding(0, 0, 0, thanh.bottom)
             thanhDuoiChon.setPadding(0, 0, 0, thanh.bottom)
@@ -187,6 +173,7 @@ class ManHinhChinhActivity : Activity() {
             }
             demDuoi = caoThanhTab + dp(35) + dp(58) + dp(24)
             luoi.datDemDuoi(demDuoi)
+            luoi.setPadding(0, 0, 0, 0)
             insets
         }
         setContentView(nen)
@@ -264,25 +251,12 @@ class ManHinhChinhActivity : Activity() {
 
     // ------------------------------------------------------------ thanh tren
 
-    /**
-     * Khung ngoai: kinh mo phia sau + thanh 56dp; om luon thanh trang thai.
-     *
-     * KHONG dat padding tren cho khung nay — padding cha se CONG vao chieu cao kinh
-     * (kinh cao caoThanhTren) lam kinh dư ra dung mot khoang bang thanh trang thai,
-     * phu de len dau tieu de. Thay vao do, thanh 56dp va o tim tu dat topMargin =
-     * inset trang thai (cap lai o listener inset).
-     */
+    /** Dinh trang: thanh 56dp (tieu de + icon) + hang tim (che do tim) chong nhau. */
     private fun dungKhungThanhTren(): View {
-        khungThanhTren = FrameLayout(this)
-        kinhTren = KinhMo(
-            this, mau,
-            mauPhu = if (mau.toi) 0xF01C1C1C.toInt() else 0xF0FFFFFF.toInt(),
-        ) { if (::khungNoiDung.isInitialized) khungNoiDung else null }
-        khungThanhTren.addView(kinhTren, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, 0))
-        val thanh = dungThanhTren()
-        khungThanhTren.addView(thanh, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, dp(56)))
-        // Hang tim (che do tim) thay the thanh 56dp, cung mot khung.
+        khungThanhTren = FrameLayout(this).apply { setBackgroundColor(mau.nen) }
+        khungThanhTren.addView(dungThanhTren(), FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, dp(56)))
         khungThanhTren.addView(dungOTim(), FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, dp(56)))
+        khungThanhTren.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(56))
         return khungThanhTren
     }
 
@@ -293,36 +267,39 @@ class ManHinhChinhActivity : Activity() {
      * Thanh chon nhieu nam CHONG len trong cung FrameLayout va doi bang alpha
      * (mo dan ~300ms nhu ActionBarContextView cua ban goc).
      */
+    /**
+     * Thanh tren la DINH trang: tieu de ben TRAI + icon ben PHAI. Khong con tieu de
+     * lon cuon; tieu de nay doi thanh thang (vd "Tháng 8, 2026") khi o tab Lich
+     * trinh, va "Riêng tư" / "Thùng rác" khi o cac muc do.
+     */
     private fun dungThanhTren(): View {
         thanhTren = FrameLayout(this)
 
-        tieuDeNho = TextView(this).apply {
-            text = "Ghi chú"
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
-            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
-            setTextColor(mau.chuChinh)
-            alpha = 0f
-        }
-        thanhTren.addView(tieuDeNho, FrameLayout.LayoutParams(
-            FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT,
-        ).apply { gravity = Gravity.CENTER })
-
-        val phai = LinearLayout(this).apply {
+        val hang = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, 0, dp(20) - dp(9), 0)
+            setPadding(dp(20), 0, dp(20) - dp(9), 0)
         }
-        // Thu tu ban chot: QR nam BEN TRAI hai nut thu muc va cai dat.
+        tieuDeNho = TextView(this).apply {
+            text = "Ghi chú"
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f)
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            setTextColor(mau.chuChinh)
+            isSingleLine = true
+            ellipsize = android.text.TextUtils.TruncateAt.END
+        }
+        hang.addView(tieuDeNho, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+
+        nutTim = nutAnh(R.drawable.ic_tim, "Tìm kiếm") { vaoCheDoTim() }
         nutQr = nutAnh(R.drawable.ghichu_ic_qr, "Quét QR") {
             startActivity(Intent(this, QuetQrActivity::class.java))
         }
         nutThuMuc = nutAnh(R.drawable.ic_thu_muc, "Thư mục") { hienThuMuc() }
-        phai.addView(nutQr)
-        phai.addView(nutThuMuc)
-        phai.addView(nutAnh(R.drawable.ic_cai_dat, "Cài đặt") { hienCaiDat() })
-        thanhTren.addView(phai, FrameLayout.LayoutParams(
-            FrameLayout.LayoutParams.WRAP_CONTENT, dp(56),
-        ).apply { gravity = Gravity.END })
+        hang.addView(nutTim)
+        hang.addView(nutQr)
+        hang.addView(nutThuMuc)
+        hang.addView(nutAnh(R.drawable.ic_cai_dat, "Cài đặt") { hienCaiDat() })
+        thanhTren.addView(hang, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, dp(56)))
 
         thanhChon = dungThanhChon()
         thanhTren.addView(thanhChon, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, dp(56)))
@@ -330,21 +307,7 @@ class ManHinhChinhActivity : Activity() {
         return thanhTren
     }
 
-    /**
-     * Tieu de LON 32sp thuong (miuix_font_size_title1, MiSans Regular), can trai.
-     * Le trai 46dp = 20dp (action bar) + 26dp (title container); tren 4dp, duoi 10dp.
-     */
-    private fun dungTieuDeLon(): View {
-        tieuDeLon = TextView(this).apply {
-            text = "Ghi chú"
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 32f)
-            typeface = Typeface.create("sans-serif", Typeface.NORMAL)
-            setTextColor(mau.chuChinh)
-            setPadding(dp(46), dp(4), dp(46), dp(10))
-            isSingleLine = true
-        }
-        return tieuDeLon
-    }
+    private lateinit var nutTim: View
 
     /**
      * Thanh chon nhieu: Huy ben trai, "Da chon N" o giua, Chon tat ca ben phai.
@@ -389,6 +352,25 @@ class ManHinhChinhActivity : Activity() {
      * 8dp duoi 4dp; kinh lup 24dp khung / 18dp net, alpha 0.3, paddingStart 12dp,
      * cach chu 8dp; chu 17sp medium, hint #4D000000.
      */
+    /** Hang chip thu muc CO DINH ngay duoi thanh tren — luon hien o tab Ghi chu. */
+    private lateinit var hangChipCoDinh: android.widget.HorizontalScrollView
+    private fun dungHangChip(): View {
+        dayChip = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        hangChip = android.widget.HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled = false
+            overScrollMode = View.OVER_SCROLL_NEVER
+            setPadding(dp(12), dp(4), dp(12), dp(8))
+            clipToPadding = false
+            setBackgroundColor(mau.nen)
+            addView(dayChip)
+        }
+        hangChipCoDinh = hangChip
+        return hangChip
+    }
+
     private fun dungOTim(): View {
         val hang = FrameLayout(this)
         val pill = LinearLayout(this).apply {
@@ -478,9 +460,8 @@ class ManHinhChinhActivity : Activity() {
     private fun vaoCheDoTim() {
         if (dangTim) return
         dangTim = true
-        for (v in listOf<View>(thanhTren, luoi.dauTrang)) {
-            v.animate().alpha(0f).setDuration(200).withEndAction { if (dangTim) v.visibility = View.GONE }.start()
-        }
+        thanhTren.animate().alpha(0f).setDuration(200).withEndAction { if (dangTim) thanhTren.visibility = View.GONE }.start()
+        hangChipCoDinh.visibility = View.GONE
         hangTim.visibility = View.VISIBLE
         hangTim.alpha = 0f
         hangTim.animate().alpha(1f).setDuration(200).start()
@@ -502,12 +483,11 @@ class ManHinhChinhActivity : Activity() {
         oTim.clearFocus()
         getSystemService(android.view.inputmethod.InputMethodManager::class.java)
             ?.hideSoftInputFromWindow(oTim.windowToken, 0)
-        for (v in listOf<View>(thanhTren, luoi.dauTrang)) {
-            v.visibility = View.VISIBLE
-            v.animate().alpha(1f).setDuration(200).start()
-        }
+        thanhTren.visibility = View.VISIBLE
+        thanhTren.animate().alpha(1f).setDuration(200).start()
         hangTim.animate().alpha(0f).setDuration(200).withEndAction { hangTim.visibility = View.GONE }.start()
         nutThem.visibility = View.VISIBLE
+        napChip()
         nutHuyTim.animate().translationX(dpF(80f)).setDuration(300)
             .withEndAction { nutHuyTim.visibility = View.GONE }.start()
         lopMoTim.animate().alpha(0f).setDuration(300).withEndAction { lopMoTim.visibility = View.GONE }.start()
@@ -520,82 +500,16 @@ class ManHinhChinhActivity : Activity() {
     private lateinit var hangChip: android.widget.HorizontalScrollView
     private lateinit var dayChip: LinearLayout
 
-    /**
-     * Hang chip thu muc ghim tren luoi (sticky_view cua ban goc) — so do o
-     * docs/SPEC-GOC-chip.md: hang cao 52dp (chip 40dp + tren 4dp + duoi 8dp), le
-     * ngang 12dp, chip cach nhau 12dp, KHONG mo mep. "Tất cả" dau, thu muc nguoi
-     * dung giua, "Chưa phân loại" cuoi. An khi chi co mot chip hoac dang o trang
-     * rieng tu / thung rac — dung nhu `setFolderVisible` cua ban goc.
-     */
-    private fun dungHangChip(): View {
-        dayChip = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-        }
-        hangChip = android.widget.HorizontalScrollView(this).apply {
-            isHorizontalScrollBarEnabled = false
-            overScrollMode = View.OVER_SCROLL_NEVER
-            setPadding(dp(12), dp(4), dp(12), dp(8))
-            clipToPadding = false
-            addView(dayChip)
-            visibility = View.GONE
-        }
-        return hangChip
-    }
 
-    /**
-     * Thanh tim TRONG header (hien o dau trang, cuon xuong thi troi theo header).
-     * La mot NUT: bam vao mo che do tim voi o nhap that o thanh tren — dung nhu
-     * ban goc (ca thanh la nut mo action mode tim).
-     */
-    private fun dungNutTim(): View {
-        val hang = FrameLayout(this)
-        val pill = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            background = GradientDrawable().apply {
-                cornerRadius = dpF(72f)
-                setColor(mau.nenTimKiem)
-            }
-            setPadding(dp(12), 0, dp(16), 0)
-            isClickable = true
-            setOnClickListener { vaoCheDoTim() }
-        }
-        pill.addView(ImageView(this).apply {
-            setImageResource(R.drawable.ic_tim)
-            setPadding(dp(3), dp(3), dp(3), dp(3))
-            setColorFilter(if (mau.toi) 0xFFFFFFFF.toInt() else 0xFF000000.toInt())
-            alpha = 0.3f
-        }, LinearLayout.LayoutParams(dp(24), dp(24)).apply { rightMargin = dp(8) })
-        pill.addView(TextView(this).apply {
-            text = "Tìm kiếm ghi chú"
-            setTextColor(mau.chuGoiY)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
-            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
-            isSingleLine = true
-        })
-        hang.addView(pill, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, dp(44)).apply {
-            leftMargin = dp(12)
-            rightMargin = dp(12)
-            topMargin = dp(8)
-            bottomMargin = dp(4)
-        })
-        hang.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(56))
-        nutTimHeader = hang
-        return hang
-    }
-
-    private lateinit var nutTimHeader: View
 
     private fun napChip() {
         val ds = kho.thuMucKemSo().map { it.first }
-        if (thungRac || riengTu || ds.isEmpty()) {
-            hangChip.visibility = View.GONE
-            hangChip.tag = "an"
+        // Hang chip chi hien o tab Ghi chu, khong o thung rac / rieng tu / tim.
+        if (tabHienTai != 0 || thungRac || riengTu || dangTim || ds.isEmpty()) {
+            hangChipCoDinh.visibility = View.GONE
             return
         }
-        hangChip.tag = null
-        hangChip.visibility = View.VISIBLE
+        hangChipCoDinh.visibility = View.VISIBLE
 
         val muc = ArrayList<Pair<String, String?>>()
         muc += "Tất cả" to null
@@ -613,9 +527,7 @@ class ManHinhChinhActivity : Activity() {
                 LinearLayout.LayoutParams.WRAP_CONTENT, dp(40),
             ).apply { if (i < muc.size - 1) rightMargin = dp(12) })
         }
-        // Chip dang chon luon lo ra — smoothScrollToPosition cua ban goc.
-        chipChon?.let { c -> hangChip.post { hangChip.smoothScrollTo((c.left - dp(12)).coerceAtLeast(0), 0) } }
-        thuGonTieuDe(luoi.scrollY)
+        chipChon?.let { c -> hangChipCoDinh.post { hangChipCoDinh.smoothScrollTo((c.left - dp(12)).coerceAtLeast(0), 0) } }
     }
 
     /**
@@ -665,8 +577,7 @@ class ManHinhChinhActivity : Activity() {
         luoi = LuoiSoLe(this)
         luoi.datThanhCuon(mau.toi)
         luoi.khiCuon = { t ->
-            thuGonTieuDe(t)
-            if (::kinhTab.isInitialized) kinhTab.invalidate()
+                if (::kinhTab.isInitialized) kinhTab.invalidate()
             if (::kinhTren.isInitialized) kinhTren.invalidate()
         }
         hop.addView(luoi, FrameLayout.LayoutParams(
@@ -715,13 +626,6 @@ class ManHinhChinhActivity : Activity() {
      * Cuon xuong: tieu de lon mo dan, tieu de nho o giua thanh 56dp hien dan —
      * cross-fade theo alpha, dung nhu hai container title cua miuix ActionBar.
      */
-    private fun thuGonTieuDe(t: Int) {
-        if (tabHienTai != 0 || dangTim) return
-        val cao = tieuDeLon.height.coerceAtLeast(1)
-        val f = (t.toFloat() / cao).coerceIn(0f, 1f)
-        tieuDeLon.alpha = 1f - f
-        tieuDeNho.alpha = f
-    }
 
     private fun dungThe(g: GhiChu): TheGhiChu {
         val v = the[g.id] ?: TheGhiChu(this).also { the[g.id] = it }
@@ -900,25 +804,12 @@ class ManHinhChinhActivity : Activity() {
 
         if (i == 1 && khungLich == null) {
             val man = ManLichTrinh(this)
-            // Tab Lich trinh co tieu de lon rieng, cung kieu 32sp, nam tren lich.
-            tieuDeLich = TextView(this).apply {
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 32f)
-                typeface = Typeface.create("sans-serif", Typeface.NORMAL)
-                setTextColor(mau.chuChinh)
-                setPadding(dp(46), dp(4), dp(46), dp(10))
-                isSingleLine = true
-            }
-            man.datTieuDe = { chu ->
-                tieuDeLich.text = chu
-                if (tabHienTai == 1) tieuDeNho.text = chu
-            }
-            val cot = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-            cot.addView(tieuDeLich)
-            cot.addView(man.taoView(), LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
+            man.datTieuDe = { chu -> if (tabHienTai == 1) tieuDeNho.text = chu }
+            val v = man.taoView()
             manLich = man
-            cot.setPadding(0, caoThanhTren, 0, caoThanhTab)
-            khungLich = cot
-            khungNoiDung.addView(cot, FrameLayout.LayoutParams(
+            v.setPadding(0, 0, 0, caoThanhTab)
+            khungLich = v
+            khungNoiDung.addView(v, FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT,
             ))
         }
@@ -929,9 +820,12 @@ class ManHinhChinhActivity : Activity() {
         nutThem.visibility = if (laLich) View.GONE else View.VISIBLE
         nutQr.visibility = if (laLich) View.GONE else View.VISIBLE
         nutThuMuc.visibility = if (laLich) View.GONE else View.VISIBLE
-        tieuDeNho.alpha = if (laLich) 0f else (tieuDeNho.alpha)
-        if (!laLich) thuGonTieuDe(luoi.scrollY)
-        kinhTren.postInvalidate()
+        nutTim.visibility = if (laLich) View.GONE else View.VISIBLE
+        hangChipCoDinh.visibility = if (laLich) View.GONE else View.VISIBLE
+        // Tab Lich trinh: thanh nav hien THANG, NAM dang xem (vd "Tháng 8, 2026");
+        // ManLichTrinh cap nhat qua datTieuDe khi doi tuan. Dat truoc mot lan cho
+        // khoi tho luc chua nap.
+        if (laLich) tieuDeNho.text = NgayVN.nhanThang(java.time.LocalDate.now())
 
         if (laLich) {
             manLich?.nap()
@@ -1316,10 +1210,7 @@ class ManHinhChinhActivity : Activity() {
             thuMuc!!.isEmpty() -> "Chưa xếp thư mục"
             else -> thuMuc!!
         }
-        if (tabHienTai == 0) {
-            tieuDeLon.text = ten
-            tieuDeNho.text = ten
-        }
+        if (tabHienTai == 0) tieuDeNho.text = ten
 
         if (dangTim) {
             // Co chu thi bo lop mo de thay ket qua; xoa het chu thi phu lai.
@@ -1328,7 +1219,6 @@ class ManHinhChinhActivity : Activity() {
         }
 
         if (::kinhTab.isInitialized) kinhTab.postInvalidate()
-        if (::kinhTren.isInitialized) kinhTren.postInvalidate()
         oTrong.visibility = if (duLieu.isEmpty()) View.VISIBLE else View.GONE
         oTrong.findViewWithTag<TextView>("chu_trong")?.text = when {
             tim.isNotBlank() -> "Không có ghi chú nào ở đây"
