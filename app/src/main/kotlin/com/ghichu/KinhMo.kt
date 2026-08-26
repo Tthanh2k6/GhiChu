@@ -23,6 +23,8 @@ import android.view.View
 class KinhMo(
     context: Context,
     private val mau: BangMau,
+    /** Lop mau phu len kinh. Mac dinh trong hon (thanh tab); thanh tren dat duc hon. */
+    private val mauPhu: Int = if (mau.toi) 0xB31C1C1C.toInt() else 0xB8FFFFFF.toInt(),
     private val nguon: () -> View?,
 ) : View(context) {
 
@@ -47,6 +49,6 @@ class KinhMo(
             c.restore()
         }
         // Mau kinh phu len: trang / den hoi trong (Mask.Pured_Regular cua HyperOS).
-        c.drawColor(if (mau.toi) 0xB31C1C1C.toInt() else 0xB8FFFFFF.toInt())
+        c.drawColor(mauPhu)
     }
 }

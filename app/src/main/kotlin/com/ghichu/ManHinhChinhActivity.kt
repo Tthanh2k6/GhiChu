@@ -265,7 +265,10 @@ class ManHinhChinhActivity : Activity() {
     /** Khung ngoai: kinh mo phia sau + thanh 56dp; om luon thanh trang thai. */
     private fun dungKhungThanhTren(): View {
         khungThanhTren = FrameLayout(this)
-        kinhTren = KinhMo(this, mau) { if (::khungNoiDung.isInitialized) khungNoiDung else null }
+        kinhTren = KinhMo(
+            this, mau,
+            mauPhu = if (mau.toi) 0xF01C1C1C.toInt() else 0xF0FFFFFF.toInt(),
+        ) { if (::khungNoiDung.isInitialized) khungNoiDung else null }
         khungThanhTren.addView(kinhTren, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, 0))
         val thanh = dungThanhTren()
         khungThanhTren.addView(thanh, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, dp(56)))
