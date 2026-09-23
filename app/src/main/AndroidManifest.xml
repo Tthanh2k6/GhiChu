@@ -83,6 +83,10 @@
             android:name="com.ghichu.CaiDatGiaoDienActivity"
             android:exported="false" />
 
+        <activity
+            android:name="com.ghichu.SaoLuuActivity"
+            android:exported="false" />
+
         <!--
           Dua tep xuat (anh, PDF, van ban) ra cho app khac doc khi chia se.
           `exported="true"` + `grantUriPermissions` la cach duy nhat de app nhan
@@ -165,5 +169,15 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/ghichu_widget_lich_info" />
         </receiver>
+
+        <!--
+          Cấp từng dòng cho ListView cuộn của widget Lịch trình. `BIND_REMOTEVIEWS`
+          là BẮT BUỘC: chỉ hệ thống được nối vào service này, không app khác gọi
+          tuỳ tiện được. exported=false vì chỉ tiến trình app tự dùng.
+        -->
+        <service
+            android:name="com.ghichu.LichTrinhWidgetService"
+            android:permission="android.permission.BIND_REMOTEVIEWS"
+            android:exported="false" />
     </application>
 </manifest>

@@ -1157,7 +1157,7 @@ class ManHinhChinhActivity : Activity() {
     // ------------------------------------------------------------ cai dat
 
     private fun hienCaiDat() {
-        val muc = arrayOf("Trợ lý AI", "Giao diện", "Đồng bộ tài khoản", "Khoá API Gemini")
+        val muc = arrayOf("Trợ lý AI", "Giao diện", "Đồng bộ tài khoản", "Sao lưu & khôi phục", "Khoá API Gemini")
         HopThoai(this, mau)
             .setTitle("Cài đặt")
             .setItems(muc) { _, chon ->
@@ -1165,7 +1165,8 @@ class ManHinhChinhActivity : Activity() {
                     0 -> startActivity(Intent(this, TroLyAiActivity::class.java))
                     1 -> startActivity(Intent(this, CaiDatGiaoDienActivity::class.java))
                     2 -> startActivity(Intent(this, DongBoActivity::class.java))
-                    3 -> hienKhoaGemini()
+                    3 -> startActivity(Intent(this, SaoLuuActivity::class.java))
+                    4 -> hienKhoaGemini()
                 }
             }
             .show()

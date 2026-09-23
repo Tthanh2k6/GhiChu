@@ -11,9 +11,11 @@ import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.ZoneId
 
 /**
@@ -40,11 +42,17 @@ class ManLichTrinh(private val context: Context) {
     private val nen = java.util.concurrent.Executors.newSingleThreadExecutor()
 
     private lateinit var tuanView: TuanView
+    private lateinit var lichThang: LichThangView
+    private lateinit var khungLich: FrameLayout
+    private lateinit var nutCheDo: TextView
     private lateinit var oHomNay: TextView
     private lateinit var oSapToi: TextView
     private lateinit var oSapToiPhu: TextView
 
     private var ngayTrai: LocalDate = LocalDate.now().minusDays(1)
+
+    /** Đang xem lịch THÁNG (true) hay lưới TUẦN (false). */
+    private var cheDoThang = false
 
     /**
      * Ghi nhan thang dang xem len thanh tieu de CUA APP.
@@ -76,10 +84,25 @@ class ManLichTrinh(private val context: Context) {
             onChon = { lan -> SuaSuKien(context, db, lan.suKien, null) { nap() }.hien() }
             onNgayTraiDoi = { ngay ->
                 ngayTrai = ngay
-                datTieuDe?.invoke(NgayVN.nhanThang(ngay))
+                if (!cheDoThang) datTieuDe?.invoke(NgayVN.nhanThang(ngay))
             }
         }
-        goc.addView(tuanView, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+        lichThang = LichThangView(context, mau).apply {
+            visibility = View.GONE
+            onChonNgay = { ngay ->
+                // Chạm một ngày ở lịch tháng: về lưới TUẦN đúng ngày đó.
+                cheDoTuan()
+                tuanView.nhayToi(ngay)
+            }
+            onDoiThang = { m -> datTieuDe?.invoke(NgayVN.nhanThang(m.atDay(1))) }
+        }
+        khungLich = FrameLayout(context).apply {
+            addView(tuanView, FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+            addView(lichThang, FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        }
+        goc.addView(khungLich, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
 
         goc.addView(thanhDuoi(), LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
 
@@ -143,10 +166,52 @@ class ManLichTrinh(private val context: Context) {
         }
         addView(cot, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         addView(
+            nutCheDoLich(),
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply { marginEnd = dp(12) },
+        )
+        addView(
             oVuongHomNay(),
             LinearLayout.LayoutParams(dp(34), dp(34)).apply { marginEnd = dp(12) },
         )
         addView(nutThem(), LinearLayout.LayoutParams(dp(46), dp(46)))
+    }
+
+    /** Nút chuyển Tuần ⇄ Tháng. Chữ đổi theo chế độ đang xem. */
+    private fun nutCheDoLich(): View = TextView(context).apply {
+        nutCheDo = this
+        text = "Tháng"
+        setTextColor(mau.chuChinh)
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+        gravity = Gravity.CENTER
+        setPadding(dp(12), dp(6), dp(12), dp(6))
+        background = GradientDrawable().apply {
+            cornerRadius = dp(16).toFloat()
+            setColor(BangMau.mauMo(mau.chuChinh, 0.08f))
+        }
+        setOnClickListener { doiCheDo() }
+    }
+
+    private fun doiCheDo() {
+        if (cheDoThang) cheDoTuan() else cheDoThang()
+    }
+
+    private fun cheDoThang() {
+        cheDoThang = true
+        lichThang.datThang(YearMonth.from(ngayTrai))
+        lichThang.visibility = View.VISIBLE
+        tuanView.visibility = View.GONE
+        nutCheDo.text = "Tuần"
+        datTieuDe?.invoke(NgayVN.nhanThang(lichThang.thangDangXem().atDay(1)))
+    }
+
+    private fun cheDoTuan() {
+        cheDoThang = false
+        lichThang.visibility = View.GONE
+        tuanView.visibility = View.VISIBLE
+        nutCheDo.text = "Tháng"
+        datTieuDe?.invoke(NgayVN.nhanThang(ngayTrai))
     }
 
     /**
@@ -230,10 +295,15 @@ class ManLichTrinh(private val context: Context) {
             NgayVN.dauNgay(homNay.plusDays(TuanView.SO_NGAY_TOI.toLong()), zone),
         )
         tuanView.datDuLieu(ds, zone)
+        if (::lichThang.isInitialized) lichThang.datDuLieu(ds, zone)
         oHomNay.text = "${homNay.dayOfMonth}"
         // Doc `ngayTrai` cua minh chu khong hoi TuanView: luc goi lan dau view chua
         // do xong, be rong con bang 0 nen no tra ve ngay dau dai cuon (nam ngoai).
-        datTieuDe?.invoke(NgayVN.nhanThang(ngayTrai))
+        if (cheDoThang && ::lichThang.isInitialized) {
+            datTieuDe?.invoke(NgayVN.nhanThang(lichThang.thangDangXem().atDay(1)))
+        } else {
+            datTieuDe?.invoke(NgayVN.nhanThang(ngayTrai))
+        }
         capNhatSapToi(ds)
     }
 

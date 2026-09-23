@@ -2,14 +2,17 @@
 <!--
   Widget Lịch trình: các sự kiện SẮP TỚI, mỗi dòng hai cột —
   cột trái = thứ + ngày, cột phải = tên + giờ.
-  Dòng trên cùng nổi bật = việc đang hoặc sắp diễn ra gần nhất.
+
+  KHÁC bản cũ: danh sách nay CUỘN được. Dùng `ListView` + `RemoteViewsService`
+  (xem LichTrinhWidgetService) thay cho lối `addView` từng dòng — lịch dài bao
+  nhiêu cũng kéo xem hết, không còn bị cắt ở đáy widget.
 
   BA RÀNG BUỘC CỦA RemoteViews, đừng quên:
    1. KHÔNG dùng thẻ <View> trơn — RemoteViews chỉ nhận LinearLayout /
-      FrameLayout / TextView / ImageView… Muốn vạch ngăn thì dùng TextView
-      cao 1dp. Sai điều này là widget báo "Không thể tải tiện ích".
-   2. Danh sách KHÔNG cuộn: thêm thẳng từng dòng vào `ghichu_widget_khung`.
-      Đã thử RemoteViewsService và RemoteCollectionItems ở dự án cũ, bỏ cả hai.
+      FrameLayout / TextView / ImageView / ListView… Muốn vạch ngăn thì dùng
+      TextView cao 1dp. Sai điều này là widget báo "Không thể tải tiện ích".
+   2. `ListView` phải có `RemoteViewsService` cấp dòng, khai báo service trong
+      manifest với quyền BIND_REMOTEVIEWS.
    3. Màu chữ do code đặt lúc chạy (theo giao diện sáng/tối), giá trị ở đây chỉ
       là mặc định cho lúc xem trước trong bảng chọn widget.
 -->
@@ -29,52 +32,7 @@
         android:textColor="#F2F2F2"
         android:textSize="13sp"
         android:textStyle="bold"
-        android:paddingBottom="4dp" />
-
-    <LinearLayout
-        android:id="@+id/ghichu_widget_hang_dau"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingTop="2dp"
-        android:paddingBottom="6dp">
-
-        <TextView
-            android:id="@+id/ghichu_widget_ngay_dau"
-            android:layout_width="46dp"
-            android:layout_height="wrap_content"
-            android:textColor="#FFBF0F"
-            android:textSize="11sp"
-            android:gravity="center_horizontal"
-            android:paddingEnd="8dp" />
-
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
-
-            <TextView
-                android:id="@+id/ghichu_widget_ten_dau"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textColor="#F2F2F2"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:maxLines="1"
-                android:ellipsize="end" />
-
-            <TextView
-                android:id="@+id/ghichu_widget_gio_dau"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textColor="#CCFFFFFF"
-                android:textSize="12sp"
-                android:maxLines="1"
-                android:ellipsize="end" />
-        </LinearLayout>
-    </LinearLayout>
+        android:paddingBottom="6dp" />
 
     <!-- Vạch ngăn: TextView cao 1dp, KHÔNG được dùng thẻ <View>. -->
     <TextView
@@ -83,11 +41,33 @@
         android:layout_height="1dp"
         android:background="#22FFFFFF" />
 
-    <LinearLayout
-        android:id="@+id/ghichu_widget_khung"
+    <!--
+      ListView cuộn + view "rỗng" chồng lên nhau trong FrameLayout: đây là mẫu
+      chuẩn của setEmptyView — danh sách trống thì ListView tự ẩn, chữ "không có
+      sự kiện" hiện ra.
+    -->
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:orientation="vertical"
-        android:paddingTop="4dp" />
+        android:paddingTop="4dp">
+
+        <ListView
+            android:id="@+id/ghichu_widget_ds"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:divider="@null"
+            android:dividerHeight="0dp"
+            android:scrollbars="vertical"
+            android:fadeScrollbars="false" />
+
+        <TextView
+            android:id="@+id/ghichu_widget_trong"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="Không có sự kiện sắp tới"
+            android:textColor="#CCFFFFFF"
+            android:textSize="13sp" />
+    </FrameLayout>
 </LinearLayout>

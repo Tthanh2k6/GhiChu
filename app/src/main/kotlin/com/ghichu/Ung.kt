@@ -20,6 +20,9 @@ class Ung : Application() {
         DongBo.khoiTao(this)
         Gemini.khoiTao(this)
         KhoaRiengTu.khoiTao(this)
+        // Tu day dong bo khi app xuong nen (bo sung cho luot dong bo luc MO app
+        // o ManHinhChinhActivity.onResume).
+        DongBoTuDong.gan(this)
         // Hen lai bao thuc nhac nho ngay khi app song lai. Can cho lan dau sau
         // khi cai: chua sua gi thi khong co duong nao khac goi toi [NhacNho].
         //

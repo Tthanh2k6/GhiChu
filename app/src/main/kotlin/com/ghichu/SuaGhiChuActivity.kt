@@ -102,12 +102,12 @@ class SuaGhiChuActivity : Activity() {
             // toolbar om luon vung thanh dieu huong — khong con khoang ho duoi toolbar.
             view.setPadding(0, thanh.top, 0, 0)
             thanhCongCu.setPadding(0, 0, 0, maxOf(thanh.bottom, banPhim.bottom))
-            // Ban phim mo = dang SOAN: ban goc doi nhom nut phai sang undo/redo/done.
-            // O day: an share/mau/them, hien "Xong" (khong co undo/redo — EditText
-            // cua khung khong mo API undo).
+            // Ban phim mo = dang SOAN: doi nhom nut phai sang ↶ hoan tac / ↷ lam
+            // lai / ✓ xong (nhu ban goc); dong lai thi ve nhom xem (chia se / them).
             val dangSoan = banPhim.bottom > 0
             nhomXem.visibility = if (dangSoan) View.GONE else View.VISIBLE
-            nutXong.visibility = if (dangSoan) View.VISIBLE else View.GONE
+            nhomSoan.visibility = if (dangSoan) View.VISIBLE else View.GONE
+            if (dangSoan) capNhatNutHoanTac()
             insets
         }
         setContentView(nen)
@@ -134,8 +134,12 @@ class SuaGhiChuActivity : Activity() {
     // ------------------------------------------------------------ dung giao dien
 
     private lateinit var nhomXem: LinearLayout
+    private lateinit var nhomSoan: LinearLayout
     private lateinit var nutXong: View
+    private lateinit var nutHoanTac: TextView
+    private lateinit var nutLamLai: TextView
     private lateinit var nutThemMenu: View
+    private var boHoanTac: BoHoanTac? = null
 
     /**
      * Thanh tren 56dp (miuix_appcompat_action_bar_default_height), nen trong suot.
@@ -164,13 +168,28 @@ class SuaGhiChuActivity : Activity() {
         nhomXem.addView(nutThemMenu)
         thanh.addView(nhomXem)
 
+        // Che do SOAN: hien ↶ (hoan tac) · ↷ (lam lai) · ✓ (xong) — dung nhom nut
+        // phai kieu ban goc khi ban phim mo. Hai nut undo/redo mo dan khi khong con
+        // gi de lui/toi.
+        nhomSoan = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            visibility = View.GONE
+        }
+        nutHoanTac = nutChuNho("↶", "Hoàn tác") { boHoanTac?.lui() } as TextView
+        nutLamLai = (nutChuNho("↷", "Làm lại") { boHoanTac?.toiLai() } as TextView).also {
+            (it.layoutParams as LinearLayout.LayoutParams).leftMargin = dp(4)
+        }
         nutXong = nutChuNho("✓", "Xong") {
             oThan.clearFocus()
             oTieuDe.clearFocus()
             getSystemService(android.view.inputmethod.InputMethodManager::class.java)
                 ?.hideSoftInputFromWindow(nen.windowToken, 0)
-        }.apply { visibility = View.GONE }
-        thanh.addView(nutXong)
+        }.also { (it.layoutParams as LinearLayout.LayoutParams).leftMargin = dp(8) }
+        nhomSoan.addView(nutHoanTac)
+        nhomSoan.addView(nutLamLai)
+        nhomSoan.addView(nutXong)
+        thanh.addView(nhomSoan)
 
         thanh.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(56))
         return thanh
@@ -289,6 +308,11 @@ class SuaGhiChuActivity : Activity() {
         capNhatDem()
         capNhatChip()
 
+        // Gan sau setText ban dau: khong ghi luot nap thanh mot moc hoan tac —
+        // lan sua dau tien cua nguoi dung moi chup trang thai goc de lui ve.
+        boHoanTac = BoHoanTac(oThan).apply { khiDoi = { capNhatNutHoanTac() } }
+        capNhatNutHoanTac()
+
         // Phai doi do rong that cua o soan thao roi moi ve anh — luc dung view no
         // van con bang 0, ve luc do la anh be ti mot chuong.
         oThan.post { veAnh() }
@@ -306,9 +330,21 @@ class SuaGhiChuActivity : Activity() {
         return cuon
     }
 
-    /** "123 ký tự" — plurals word_count cua ban goc. */
+    /** "45 từ · 123 ký tự" — dem tu (tach theo khoang trang) va dem ky tu. */
     private fun capNhatDem() {
-        oDem.text = oThan.text.length.toString() + " ký tự"
+        val chu = oThan.text.toString()
+        val soTu = if (chu.isBlank()) 0 else chu.trim().split(Regex("\\s+")).size
+        oDem.text = "$soTu từ · ${oThan.text.length} ký tự"
+    }
+
+    /** Bat/mo dan hai nut ↶ ↷ theo con lui/lam lai duoc hay khong. */
+    private fun capNhatNutHoanTac() {
+        val b = boHoanTac
+        if (!::nutHoanTac.isInitialized || b == null) return
+        nutHoanTac.isEnabled = b.coLui
+        nutHoanTac.alpha = if (b.coLui) 1f else 0.35f
+        nutLamLai.isEnabled = b.coToiLai
+        nutLamLai.alpha = if (b.coToiLai) 1f else 0.35f
     }
 
     private fun capNhatChip() {
@@ -976,6 +1012,8 @@ class SuaGhiChuActivity : Activity() {
             if (nhacLuc == null) hienDatNhac() else datNhac(null)
         }
         menu.them(if (goc?.riengTu == true) "Bỏ ẩn" else "Ẩn") { doiRiengTu() }
+        menu.them("Tóm tắt (AI)") { hienTomTat() }
+        menu.them("Gợi ý tiêu đề (AI)") { hienGoiYTieuDe() }
         menu.them("Chuyển tới") { hienChonThuMuc() }
         if (id != 0L) {
             menu.them("Xóa") {
@@ -989,6 +1027,82 @@ class SuaGhiChuActivity : Activity() {
         menu.hien(nutThemMenu)
     }
 
+
+    // ------------------------------------------------------------ AI trong bai
+
+    /**
+     * Chay mot lenh AI tren noi dung ghi chu.
+     *
+     * Goi mang o LUONG NEN (Gemini.sinh cam luong chinh), hien hop "Dang hoi AI…"
+     * trong luc cho, va nuot loi thanh Toast — khong de mot loi mang lam vo man
+     * soan dang go do.
+     */
+    private fun chayAi(viec: String, loiNhac: String, xong: (String) -> Unit) {
+        if (!Gemini.daCoKhoa) {
+            Toast.makeText(this, "Chưa có khoá API Gemini. Mở Trợ lý AI để dán khoá.", Toast.LENGTH_LONG).show()
+            return
+        }
+        if (than().toString().isBlank() && tieuDe().isBlank()) {
+            Toast.makeText(this, "Ghi chú trống", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val hop = HopThoai(this, mau).setTitle(viec).setMessage("Đang hỏi AI…").setCancelable(false).show()
+        Thread {
+            val kq = try {
+                Gemini.sinh(loiNhac)
+            } catch (e: Exception) {
+                runOnUiThread {
+                    hop.dismiss()
+                    if (!isFinishing && !isDestroyed)
+                        Toast.makeText(this, e.message ?: "AI lỗi", Toast.LENGTH_LONG).show()
+                }
+                return@Thread
+            }
+            runOnUiThread {
+                hop.dismiss()
+                if (!isFinishing && !isDestroyed) xong(kq.trim())
+            }
+        }.start()
+    }
+
+    private fun hienTomTat() {
+        val noiDung = (tieuDe() + "\n" + than().toString()).trim()
+        val loiNhac = "Tóm tắt ghi chú sau thành 2–4 câu ngắn gọn bằng tiếng Việt, " +
+            "giữ đúng ý chính, không thêm thông tin mới. Chỉ trả về phần tóm tắt:\n\n$noiDung"
+        chayAi("Tóm tắt", loiNhac) { kq ->
+            HopThoai(this, mau)
+                .setTitle("Tóm tắt")
+                .setMessage(kq)
+                .setNegativeButton("Đóng", null)
+                .setPositiveButton("Chèn vào đầu bài") { _, _ ->
+                    oThan.text.insert(0, "Tóm tắt: $kq\n\n")
+                    oThan.setSelection(0)
+                }
+                .show()
+        }
+    }
+
+    private fun hienGoiYTieuDe() {
+        val noiDung = than().toString().trim().ifBlank { tieuDe() }
+        val loiNhac = "Đặt đúng MỘT tiêu đề ngắn (tối đa 8 từ) bằng tiếng Việt cho ghi chú sau. " +
+            "Chỉ trả về tiêu đề, không ngoặc kép, không giải thích:\n\n$noiDung"
+        chayAi("Gợi ý tiêu đề", loiNhac) { kq ->
+            val td = kq.lineSequence().firstOrNull().orEmpty().trim().trim('"', '“', '”', '.').take(100)
+            if (td.isBlank()) {
+                Toast.makeText(this, "AI không trả về tiêu đề", Toast.LENGTH_SHORT).show()
+                return@chayAi
+            }
+            HopThoai(this, mau)
+                .setTitle("Gợi ý tiêu đề")
+                .setMessage(td)
+                .setNegativeButton("Bỏ qua", null)
+                .setPositiveButton("Dùng tiêu đề này") { _, _ ->
+                    oTieuDe.setText(td)
+                    oTieuDe.setSelection(td.length)
+                }
+                .show()
+        }
+    }
 
     private fun hienChonThuMuc() {
         val ds = kho.thuMucKemSo().map { it.first }

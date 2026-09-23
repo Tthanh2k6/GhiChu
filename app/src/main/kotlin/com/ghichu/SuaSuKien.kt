@@ -71,7 +71,10 @@ class SuaSuKien(
             // nguoi dung khong tu chon mau khac.
             mau = HangMau.dinh(context)
             lapLai = SuKien.LAP_KHONG
-            nhac = -1
+            // Mac dinh nhac TRUOC 1 TIENG (60 phut) cho su kien moi — de moi viec
+            // deu duoc bao truoc ma khong phai tu dat tay tung cai. Doi trong o
+            // "Nhac" neu muon khac (van co "Khong nhac").
+            nhac = 60
         }
     }
 
