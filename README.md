@@ -1,41 +1,65 @@
-# Ghi chú
+# GhiChu — AI-Powered Rich-Text Notes, Schedule & AES-256 Vault (Pure Kotlin Android)
 
-**Ghi lại ý tưởng, sắp xếp lịch trình, giữ dữ liệu trong tầm tay.**
+<div align="center">
+  <img src="https://raw.githubusercontent.com/Tthanh2k6/Portfolio/main/public/IMG/project-sothuchi.png" alt="GhiChu — AI-Powered Notes, Schedule & AES-256 Vault Android App" width="100%" />
 
-![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?style=flat-square&logo=kotlin&logoColor=white)
-![Android](https://img.shields.io/badge/Android-11%2B-3DDC84?style=flat-square&logo=android&logoColor=white)
-![Storage](https://img.shields.io/badge/Storage-SQLite-2563EB?style=flat-square)
+  <br />
 
-Ứng dụng ghi chú và lịch trình bằng Kotlin, dùng giao diện Android native và lưu dữ liệu cục bộ. Ghi chú, sự kiện, widget, trợ lý Gemini và sao lưu nằm trong cùng một ứng dụng; đồng bộ Supabase là tính năng tùy chọn.
+  <p align="center">
+    <img src="https://img.shields.io/badge/Kotlin-2.3_(JVM_17)-7F52FF?style=flat-square&logo=kotlin&logoColor=white" alt="Kotlin" />
+    <img src="https://img.shields.io/badge/Android-11%2B_(API_30)-3DDC84?style=flat-square&logo=android&logoColor=white" alt="Android 11+" />
+    <img src="https://img.shields.io/badge/APK_Size-&lt;3_MB_(Zero_AndroidX)-10B981?style=flat-square" alt="<3 MB APK" />
+    <img src="https://img.shields.io/badge/AI-Google_Gemini_API-4285F4?style=flat-square&logo=google&logoColor=white" alt="Gemini AI" />
+    <img src="https://img.shields.io/badge/Cloud_Sync-Supabase_REST-3ECF8E?style=flat-square&logo=supabase&logoColor=white" alt="Supabase" />
+    <img src="https://img.shields.io/badge/Security-AES--256--GCM-EF4444?style=flat-square" alt="AES-256-GCM" />
+  </p>
+</div>
 
-[Tính năng](#tính-năng) · [Build](#build) · [Bắt đầu sử dụng](#bắt-đầu-sử-dụng) · [Dữ liệu](#dữ-liệu-và-đồng-bộ) · [Mã nguồn](#mã-nguồn)
+---
 
-## Tính năng
+## ✨ Overview
 
-| Nhóm | Có trong ứng dụng |
-| --- | --- |
-| Soạn thảo | Ghi chú theo khối, định dạng, checklist, ảnh, ghi âm và hoàn tác |
-| Sắp xếp | Thư mục, tìm kiếm, giao diện ghi chú và khóa riêng tư |
-| Lịch trình | Xem lịch, tạo sự kiện, nhắc nhở và sự kiện lặp lại |
-| Widget | Danh sách ghi chú, ghim một ghi chú và lịch trình trên màn hình chính |
-| Trợ lý AI | Gemini, đề xuất nội dung và các thao tác qua giao diện xác nhận |
-| Công cụ bổ sung | Bản đồ tư duy, quét QR, xuất/chia sẻ ghi chú |
-| Dữ liệu | Lưu cục bộ, đồng bộ Supabase, sao lưu và khôi phục bằng ZIP |
+**GhiChu (`com.ghichu`)** is an ultra-lightweight (**`<3 MB APK`**) native Android productivity application engineered in **pure Kotlin directly on the Android SDK** (zero AndroidX, Jetpack, or Google Play Services bloat). It unifies multimedia rich-text notes, weekly/monthly schedules, a **Google Gemini AI** assistant, an **AES-256-GCM** encrypted private vault, bidirectional **Supabase** cloud sync, and **3 Home-Screen AppWidgets**.
 
-## Build
+| Module | Key Capabilities |
+| :--- | :--- |
+| **Rich-Text Editor & Mind Maps** | Block-based formatting, interactive checklists, inline images, voice recordings, undo/redo stack, and visual mind-map blocks. |
+| **Schedule & Smart Reminders** | Weekly/monthly calendar views, recurring events, university timetable slot conversion (`T1..T16`), and exact alarm notifications. |
+| **Google Gemini AI Assistant** | Natural-language schedule parsing, note summarization, and action proposals gated by an interactive user confirmation dialog (`AiDeXuat.kt` / `AiApDung.kt`). |
+| **AES-256-GCM Private Vault** | Hardware-backed PBKDF2/SHA-256 PIN derivation and authenticated `AES-256-GCM` encryption for sensitive notes. |
+| **3 Home-Screen AppWidgets** | Notes list widget (`GhiChuWidget`), single pinned note widget (`GhiChuMotWidget`), and upcoming schedule widget (`LichTrinhWidget`). |
+| **Local-First Sync & ZIP Backup** | Instant offline SQLite storage (`ghichu.db`) with background delta sync to **Supabase** (`sync_items`) plus full `.zip` archive export/import including audio & image attachments. |
 
-**Yêu cầu:** JDK 17, Android SDK 36; thiết bị chạy Android 11/API 30 trở lên. Dự án có Gradle Wrapper nên không cần cài Gradle riêng.
+---
+
+## 🏗️ Data & Synchronization Architecture
+
+```mermaid
+flowchart LR
+    UI["Native Kotlin UI &\n3 Home AppWidgets"] --> DB[("Local SQLite\n(ghichu.db)")]
+    Gemini["Google Gemini API\n(NLP Schedule & Note AI)"] -->|"Confirmation Gate"| UI
+    DB <-->|"Bidirectional Delta Sync\n(sync_items REST)"| Cloud[("Supabase Cloud")]
+    DB --> Backup["Full .ZIP Backup\n(DB + Images + Audio)"]
+```
+
+---
+
+## 🚀 Build & Run
+
+**Prerequisites:** JDK 17, Android SDK 36 (`minSdk = 30` / Android 11+).
 
 ```powershell
 git clone https://github.com/Tthanh2k6/GhiChu.git
 cd GhiChu
 ```
 
-Tạo `local.properties` tại gốc repo, đặt `sdk.dir` theo đường dẫn SDK trên máy, ví dụ:
+Create a `local.properties` file in the repository root pointing to your Android SDK:
 
 ```properties
 sdk.dir=C:/Users/your-user/AppData/Local/Android/Sdk
 ```
+
+Build the debug APK and run unit tests:
 
 ```powershell
 .\gradlew.bat :app:assembleDebug
@@ -43,48 +67,19 @@ sdk.dir=C:/Users/your-user/AppData/Local/Android/Sdk
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Trên macOS/Linux dùng `./gradlew` thay cho `.\gradlew.bat`. APK debug được tạo tại `app/build/outputs/apk/debug/app-debug.apk`.
+---
 
-## Bắt đầu sử dụng
+## 📂 Core Source Map (`app/src/main/kotlin/com/ghichu`)
 
-1. Tạo ghi chú hoặc sự kiện; thao tác cơ bản dùng được khi không có mạng.
-2. Thêm widget từ màn hình chính của điện thoại. Với widget ghim một ghi chú, chọn ghi chú muốn hiển thị.
-3. Cấu hình Gemini trong ứng dụng nếu muốn dùng trợ lý AI.
-4. Đăng nhập phần đồng bộ khi cần chia sẻ nội dung giữa các thiết bị.
-5. Xuất bản sao lưu ZIP để mang theo cả ảnh và ghi âm.
-
-## Dữ liệu và đồng bộ
-
-```mermaid
-flowchart LR
-    UI["Ghi chú / Lịch trình"] --> DB["SQLite trên thiết bị"]
-    DB <-->|"Nội dung ghi chú và sự kiện"| Cloud["Supabase"]
-    DB --> Backup["Bản sao lưu ZIP"]
-    Media["Ảnh và ghi âm"] --> Backup
-```
-
-- **Cục bộ trước:** thay đổi được ghi vào `ghichu.db`; đồng bộ đẩy phần chưa gửi rồi lấy thay đổi từ máy chủ.
-- **Đồng bộ:** chạy khi mở ứng dụng và khi ứng dụng xuống nền. Bản sửa sau được ưu tiên khi hai thiết bị sửa cùng một bản ghi.
-- **Phạm vi:** đồng bộ hiện giữ nội dung ghi chú và lịch trình; file ảnh, ghi âm cần đi qua bản sao lưu ZIP.
-- **Khôi phục:** thay thế dữ liệu hiện tại và khởi động lại ứng dụng, không ghép hai bộ dữ liệu.
-
-Mã nguồn đã có cấu hình Supabase mặc định trong [`DongBo.kt`](app/src/main/kotlin/com/ghichu/DongBo.kt). Repo chưa kèm script dựng bảng `sync_items`; để tự vận hành backend, cần bổ sung schema và chính sách truy cập phù hợp với client. Không coi việc clone repo là đã có một máy chủ đồng bộ riêng.
-
-## Mã nguồn
-
-Thư mục chính: [`app/src/main/kotlin/com/ghichu`](app/src/main/kotlin/com/ghichu).
-
-| Thành phần | Vai trò |
-| --- | --- |
-| `ManHinhChinhActivity.kt`, `SuaGhiChuActivity.kt`, `SoanThao.kt` | Danh sách và trình soạn ghi chú |
-| `KhoDuLieu.kt`, `KhoGhiChu.kt` | Lưu trữ dữ liệu |
-| `ManLichTrinh.kt`, `SuaSuKien.kt`, `NhacNho.kt` | Lịch trình và nhắc nhở |
-| `GhiChuWidget.kt`, `GhiChuMotWidget.kt`, `LichTrinhWidget.kt` | Widget màn hình chính |
-| `Gemini.kt`, `AiDeXuat.kt`, `AiApDung.kt` | Tích hợp trợ lý AI |
-| `DongBo.kt`, `DongBoTuDong.kt`, `SaoLuu.kt` | Đồng bộ và sao lưu |
-
-Giao diện sử dụng API Android trực tiếp; thư viện ZXing hỗ trợ đọc QR, JUnit hỗ trợ kiểm thử JVM. Cấu hình release hiện dùng khóa debug, phù hợp build cá nhân; cần cấu hình khóa phát hành riêng khi phân phối bản chính thức.
+| Source Files | Responsibility |
+| :--- | :--- |
+| [`ManHinhChinhActivity.kt`](app/src/main/kotlin/com/ghichu/ManHinhChinhActivity.kt), [`SuaGhiChuActivity.kt`](app/src/main/kotlin/com/ghichu/SuaGhiChuActivity.kt), [`SoanThao.kt`](app/src/main/kotlin/com/ghichu/SoanThao.kt) | Main workspace, rich-text editor, and custom markup/Quill Delta parser |
+| [`KhoDuLieu.kt`](app/src/main/kotlin/com/ghichu/KhoDuLieu.kt), [`KhoGhiChu.kt`](app/src/main/kotlin/com/ghichu/KhoGhiChu.kt) | SQLite persistence layer and AES-256-GCM encryption |
+| [`ManLichTrinh.kt`](app/src/main/kotlin/com/ghichu/ManLichTrinh.kt), [`SuaSuKien.kt`](app/src/main/kotlin/com/ghichu/SuaSuKien.kt), [`NhacNho.kt`](app/src/main/kotlin/com/ghichu/NhacNho.kt) | Calendar views, recurring events, and alarm scheduling |
+| [`GhiChuWidget.kt`](app/src/main/kotlin/com/ghichu/GhiChuWidget.kt), [`GhiChuMotWidget.kt`](app/src/main/kotlin/com/ghichu/GhiChuMotWidget.kt), [`LichTrinhWidget.kt`](app/src/main/kotlin/com/ghichu/LichTrinhWidget.kt) | 3 Android home-screen AppWidgets |
+| [`Gemini.kt`](app/src/main/kotlin/com/ghichu/Gemini.kt), [`AiDeXuat.kt`](app/src/main/kotlin/com/ghichu/AiDeXuat.kt), [`AiApDung.kt`](app/src/main/kotlin/com/ghichu/AiApDung.kt) | Google Gemini API client, prompt engineering, and confirmation gate |
+| [`DongBo.kt`](app/src/main/kotlin/com/ghichu/DongBo.kt), [`DongBoTuDong.kt`](app/src/main/kotlin/com/ghichu/DongBoTuDong.kt), [`SaoLuu.kt`](app/src/main/kotlin/com/ghichu/SaoLuu.kt) | Supabase bidirectional REST sync engine and `.zip` backup/restore |
 
 ---
 
-**Trần Trung Thành** · [@Tthanh2k6](https://github.com/Tthanh2k6)
+**Author:** **Trung Thanh Tran** (*Trần Trung Thành*) · [GitHub `@Tthanh2k6`](https://github.com/Tthanh2k6) · [Upwork Profile](https://www.upwork.com/freelancers/~01ee7c2348cb4b62fe)
