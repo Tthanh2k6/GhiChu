@@ -1,10 +1,6 @@
 # GhiChu — AI-Powered Rich-Text Notes, Schedule & AES-256 Vault (Pure Kotlin Android)
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/Tthanh2k6/Portfolio/main/public/IMG/project-sothuchi.png" alt="GhiChu — AI-Powered Notes, Schedule & AES-256 Vault Android App" width="100%" />
-
-  <br />
-
   <p align="center">
     <img src="https://img.shields.io/badge/Kotlin-2.3_(JVM_17)-7F52FF?style=flat-square&logo=kotlin&logoColor=white" alt="Kotlin" />
     <img src="https://img.shields.io/badge/Android-11%2B_(API_30)-3DDC84?style=flat-square&logo=android&logoColor=white" alt="Android 11+" />
