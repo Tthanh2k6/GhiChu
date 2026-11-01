@@ -4,7 +4,7 @@
   <p align="center">
     <img src="https://img.shields.io/badge/Kotlin-2.3_(JVM_17)-7F52FF?style=flat-square&logo=kotlin&logoColor=white" alt="Kotlin" />
     <img src="https://img.shields.io/badge/Android-11%2B_(API_30)-3DDC84?style=flat-square&logo=android&logoColor=white" alt="Android 11+" />
-    <img src="https://img.shields.io/badge/APK_Size-&lt;3_MB_(Zero_AndroidX)-10B981?style=flat-square" alt="<3 MB APK" />
+    <img src="https://img.shields.io/badge/Zero_AndroidX-10B981?style=flat-square" alt="Zero AndroidX" />
     <img src="https://img.shields.io/badge/AI-Google_Gemini_API-4285F4?style=flat-square&logo=google&logoColor=white" alt="Gemini AI" />
     <img src="https://img.shields.io/badge/Cloud_Sync-Supabase_REST-3ECF8E?style=flat-square&logo=supabase&logoColor=white" alt="Supabase" />
     <img src="https://img.shields.io/badge/Security-AES--256--GCM-EF4444?style=flat-square" alt="AES-256-GCM" />
@@ -15,7 +15,7 @@
 
 ## ✨ Overview
 
-**GhiChu (`com.ghichu`)** is an ultra-lightweight (**`<3 MB APK`**) native Android productivity application engineered in **pure Kotlin directly on the Android SDK** (zero AndroidX, Jetpack, or Google Play Services bloat). It unifies multimedia rich-text notes, weekly/monthly schedules, a **Google Gemini AI** assistant, an **AES-256-GCM** encrypted private vault, bidirectional **Supabase** cloud sync, and **3 Home-Screen AppWidgets**.
+**GhiChu (`com.ghichu`)** is a lightweight native Android productivity application engineered in **pure Kotlin directly on the Android SDK** (zero AndroidX, Jetpack, or Google Play Services bloat). It unifies multimedia rich-text notes, weekly/monthly schedules, a **Google Gemini AI** assistant, an **AES-256-GCM** encrypted private vault, bidirectional **Supabase** cloud sync, and **3 Home-Screen AppWidgets**.
 
 | Module | Key Capabilities |
 | :--- | :--- |
