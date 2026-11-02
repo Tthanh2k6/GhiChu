@@ -22,7 +22,7 @@
 | **Rich-Text Editor & Mind Maps** | Block-based formatting, interactive checklists, inline images, voice recordings, undo/redo stack, and visual mind-map blocks. |
 | **Schedule & Smart Reminders** | Weekly/monthly calendar views, recurring events, university timetable slot conversion (`T1..T16`), and exact alarm notifications. |
 | **Google Gemini AI Assistant** | Natural-language schedule parsing, note summarization, and action proposals gated by an interactive user confirmation dialog (`AiDeXuat.kt` / `AiApDung.kt`). |
-| **AES-256-GCM Private Vault** | Hardware-backed PBKDF2/SHA-256 PIN derivation and authenticated `AES-256-GCM` encryption for sensitive notes. |
+| **AES-256-GCM Private Vault** | PIN-derived key (`PBKDF2WithHmacSHA256`, software, not Android Keystore) and authenticated `AES-256-GCM` encryption for sensitive notes. |
 | **3 Home-Screen AppWidgets** | Notes list widget (`GhiChuWidget`), single pinned note widget (`GhiChuMotWidget`), and upcoming schedule widget (`LichTrinhWidget`). |
 | **Local-First Sync & ZIP Backup** | Instant offline SQLite storage (`ghichu.db`) with background delta sync to **Supabase** (`sync_items`) plus full `.zip` archive export/import including audio & image attachments. |
 
